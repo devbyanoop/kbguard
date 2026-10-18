@@ -21,7 +21,7 @@ This page is the single source of truth for "is X actually built yet?" — updat
 - [x] `adapters/base.py` — the `VectorStoreAdapter` Protocol, plus `src/kbguard/py.typed` (PEP 561 marker, needed for the Protocol to type-check for anyone importing kbguard as an installed package, not just within this repo). Tested (structural conformance via mypy), lint-clean, strict-mypy-clean.
 - [x] `registry.py` — entry-point plugin discovery (`load_adapter`, `list_available`). Only the `adapters` group is wired up; `checks`/`metrics` groups land when their Protocols exist (Week 2/3). Tested, lint-clean, strict-mypy-clean.
 - [x] `adapters/chroma.py` — in-process, registered as a real plugin, covered by adapter-specific tests (pagination, search ordering, embeddings on/off). Lint-clean, strict-mypy-clean.
-- [ ] `contract_tests/` (Chroma) — the *shared* suite every adapter must pass; today's chroma tests are adapter-specific, not yet the parametrized cross-adapter contract.
+- [x] `contract_tests/` — the shared, backend-agnostic suite (count/iteration, id stability, search ordering, text/metadata/embedding round-trip). Parametrized over `BACKENDS` in `contract_tests/conftest.py`; currently just `["chroma"]`. Passing.
 - [ ] `ingest/metadata.py`
 - [ ] `ingest/embeddings.py`
 - [ ] `ingest/exporter.py`
