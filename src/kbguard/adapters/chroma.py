@@ -106,9 +106,9 @@ class ChromaAdapter:
             metadata = metadatas[i] if metadatas is not None else None
             embedding = [float(x) for x in embeddings[i]] if embeddings is not None else None
             chunk = Chunk(id=chunk_id, text=text or "", embedding=embedding, metadata=dict(metadata or {}))
-            # Chroma returns results nearest-first regardless of the
-            # underlying distance metric — callers rely on this ordering,
-            # not on whether a lower or higher score means "closer".
+            # Chroma's query() already returns nearest-first, satisfying the
+            # Protocol's best-match-first guarantee (adapters/base.py)
+            # without any re-sorting needed here.
             score = float(distances[i]) if distances is not None else 0.0
             pairs.append((chunk, score))
         return pairs

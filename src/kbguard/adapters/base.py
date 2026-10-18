@@ -38,8 +38,12 @@ class VectorStoreAdapter(Protocol):
         k: int,
         filters: dict[str, Any] | None = None,
     ) -> list[tuple[Chunk, float]]:
-        """Scores only need to be comparable *within a single call* — callers
-        never compare scores from two different adapters or two different
-        collections against each other.
+        """Results are returned **best-match-first**; callers rely on this
+        ordering, not on the numeric score. Scores only need to be
+        comparable *within a single call* — never across two different
+        adapters, two different collections, or against some assumed
+        absolute scale (a Chroma distance and a Qdrant similarity are not
+        the same kind of number, and callers must not assume either
+        direction — lower-is-better or higher-is-better — holds generically).
         """
         ...
