@@ -1,9 +1,8 @@
 # Writing a custom adapter
 
-!!! warning "Partially real: registration works and is tested; contract_tests/ doesn't exist yet"
-    The mechanism below — implement the Protocol, register an entry point, kbguard finds it — is real and covered by tests today. The one requirement that isn't buildable yet is passing `contract_tests/`, since that suite hasn't been written (planned alongside the Chroma adapter). Until it exists, "satisfies the Protocol" is the only bar a custom adapter can be checked against.
+Both pieces below are real and tested: registering an adapter as a plugin, and the shared `contract_tests/` suite it must pass. The suite currently covers one backend (Chroma); adding a second is mechanical (see the last section).
 
-## The mechanism (verified)
+## 1. Implement the Protocol
 
 A new store needs one file implementing `VectorStoreAdapter` (five methods — see [Adapters: overview](overview.md)):
 
@@ -25,22 +24,39 @@ class WeaviateAdapter:
                filters: dict[str, Any] | None = None) -> list[tuple[Chunk, float]]: ...
 ```
 
-...plus one entry point in *its own* package's `pyproject.toml`:
+`search` must return results **best-match-first** — this is an explicit Protocol guarantee (`adapters/base.py`), not just a convention. Callers never compare the numeric score across adapters or assume a direction (lower/higher = better); they only rely on ordering.
+
+## 2. Register it
+
+In *your own* package's `pyproject.toml` — no changes to kbguard's own source:
 
 ```toml
 [project.entry-points."kbguard.adapters"]
 weaviate = "kbguard_weaviate.adapter:WeaviateAdapter"
 ```
 
-No changes to kbguard's own source are needed. `kbguard.registry.load_adapter("weaviate")` discovers it at runtime via `importlib.metadata` entry points, the same mechanism kbguard's own built-in adapters use — this is tested in `tests/test_registry.py` against a fake registered adapter, proving the discovery path itself works correctly (name lookup, class resolution, and a clear `RegistryError` — naming what *is* available — when a requested name isn't registered).
+`kbguard.registry.load_adapter("weaviate")` discovers it at runtime via `importlib.metadata` entry points, the same mechanism kbguard's own built-in adapters use.
 
-## The one requirement: pass the contract tests (planned)
+## 3. Pass the contract tests
 
-Satisfying the Protocol's method signatures is necessary but not sufficient — nothing stops a method from being present but behaving wrong (e.g. `iter_chunks` that silently truncates at 500 rows instead of paging). `contract_tests/` will be the suite every adapter must pass before it's trusted:
+`contract_tests/` seeds a fixed, three-chunk dataset directly through the store's own native client (never through the adapter under test — the adapter is read-only by design, with no write method at all), then runs the same suite against every registered backend:
 
-- row count matches the number of chunks actually iterated,
-- chunk ids are stable across two scans of unchanged data,
-- `search` returns a deliberately planted nearest neighbor,
-- metadata round-trips through the configured mapping.
+- row count from `count()` matches the number of chunks `iter_chunks()` actually yields,
+- chunk ids are identical across two separate `iter_chunks()` calls,
+- `search()` finds a deliberately planted nearest neighbor, and returns exactly `k` results,
+- chunk text and metadata round-trip exactly,
+- embeddings round-trip **approximately** (`abs=1e-5`) — some backends store vectors as float32 internally, which loses precision relative to Python's native float64; that's an accepted backend characteristic, not a bug the suite flags,
+- `with_embeddings=False` actually omits embeddings.
 
-This page will be updated with the exact steps to run that suite against a new adapter once it exists — tracked in [Roadmap & status](../../project/roadmap.md).
+To add a new backend to the suite, in `contract_tests/conftest.py`:
+
+```python
+def _seed_weaviate(collection: str) -> None:
+    # seed SEED_CHUNKS into `collection` using Weaviate's own client —
+    # mirrors _seed_chroma immediately above it
+
+_SEEDERS["weaviate"] = _seed_weaviate
+_CONNECT_SETTINGS["weaviate"] = {...}  # whatever connect() needs
+```
+
+Every test in `test_adapter_contract.py` then runs against `weaviate` automatically — the test functions themselves never name a specific backend, they take the adapter under test as fixture data via the `ContractCase` dataclass.
