@@ -10,7 +10,7 @@ This is what the project itself uses for development, and it works right now aga
 **Requirements:** Python 3.10 or newer.
 
 ```bash
-git clone https://github.com/anoopsingh/kbguard.git
+git clone https://github.com/devbyanoop/kbguard.git
 cd kbguard
 python -m venv .venv
 # macOS/Linux:

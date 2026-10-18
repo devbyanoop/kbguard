@@ -1,7 +1,7 @@
 site_name: kbguard
 site_description: Knowledge-base QA and evals for RAG systems, across any vector database.
 repo_name: kbguard
-repo_url: https://github.com/anoopsingh/kbguard
+repo_url: https://github.com/devbyanoop/kbguard.git
 strict: true
 
 theme:

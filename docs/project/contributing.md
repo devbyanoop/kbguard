@@ -5,7 +5,7 @@ kbguard is in early, active development — see [Roadmap & status](roadmap.md) b
 ## Development setup
 
 ```bash
-git clone https://github.com/anoopsingh/kbguard.git
+git clone https://github.com/devbyanoop/kbguard.git
 cd kbguard
 python -m venv .venv
 source .venv/bin/activate   # or .venv/Scripts/activate on Windows (Git Bash)
