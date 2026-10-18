@@ -28,3 +28,6 @@ Plan/
 # Env files that may hold secrets (judge model keys, DB creds)
 .env
 .env.*
+
+# MkDocs build output (published separately, not committed to main)
+site/
