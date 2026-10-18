@@ -62,8 +62,7 @@ all = [
 [project.entry-points."kbguard.adapters"]
 # built-in adapters register the same way a third-party plugin would —
 # no special-casing of "native" vs. "community" stores.
-# Filled in as each adapter is built, e.g.:
-# chroma = "kbguard.adapters.chroma:ChromaAdapter"
+chroma = "kbguard.adapters.chroma:ChromaAdapter"
 
 [project.scripts]
 kbguard = "kbguard.cli:app"
