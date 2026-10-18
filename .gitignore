@@ -1,0 +1,30 @@
+# kbguard runtime data — snapshots contain client text, never commit
+.kbguard/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+#Do not commit following folders 
+Plan/
+# Env files that may hold secrets (judge model keys, DB creds)
+.env
+.env.*
