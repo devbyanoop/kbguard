@@ -18,8 +18,8 @@ This page is the single source of truth for "is X actually built yet?" — updat
 
 - [x] `models.py` — `Chunk`, `Finding` (+ fingerprint algorithm), `EvalResult`, `Snapshot`. Tested, lint-clean, strict-mypy-clean.
 - [x] `config.py` — load/validate `kbguard.yaml` (pydantic, strict schema, secrets-by-env-var-name). Tested, lint-clean, strict-mypy-clean.
-- [ ] `registry.py` — entry-point plugin discovery
-- [ ] `adapters/base.py` — the `VectorStoreAdapter` Protocol
+- [x] `adapters/base.py` — the `VectorStoreAdapter` Protocol, plus `src/kbguard/py.typed` (PEP 561 marker, needed for the Protocol to type-check for anyone importing kbguard as an installed package, not just within this repo). Tested (structural conformance via mypy), lint-clean, strict-mypy-clean.
+- [x] `registry.py` — entry-point plugin discovery (`load_adapter`, `list_available`). Only the `adapters` group is wired up; `checks`/`metrics` groups land when their Protocols exist (Week 2/3). Tested, lint-clean, strict-mypy-clean.
 - [ ] `adapters/chroma.py`
 - [ ] `contract_tests/` (Chroma)
 - [ ] `ingest/metadata.py`
