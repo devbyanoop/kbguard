@@ -7,6 +7,7 @@ All notable changes to kbguard are recorded here, following [Keep a Changelog](h
 ### Added
 - Project scaffold: `pyproject.toml` (packaging, extras per vector store, `ruff`/`mypy`/`pytest` config), `.gitignore`, `docker-compose.yml` for pgvector/Qdrant test fixtures.
 - `models.py`: `Chunk`, `Finding`, `EvalResult`, `Snapshot`, and the `compute_fingerprint()` algorithm used by `diff` and suppressions.
+- `config.py`: pydantic schema for `kbguard.yaml` — strict (unknown fields rejected), minimal-by-default (only `store` required), secrets referenced by environment-variable name and resolved only at point of use.
 - This documentation site (MkDocs + Material), written incrementally alongside the code.
 
 ### Design decisions locked in

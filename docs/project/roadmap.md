@@ -17,7 +17,7 @@ This page is the single source of truth for "is X actually built yet?" — updat
 **Goal:** `kbguard scan` writes a snapshot from Chroma, pgvector, and Qdrant.
 
 - [x] `models.py` — `Chunk`, `Finding` (+ fingerprint algorithm), `EvalResult`, `Snapshot`. Tested, lint-clean, strict-mypy-clean.
-- [ ] `config.py` — load/validate `kbguard.yaml`
+- [x] `config.py` — load/validate `kbguard.yaml` (pydantic, strict schema, secrets-by-env-var-name). Tested, lint-clean, strict-mypy-clean.
 - [ ] `registry.py` — entry-point plugin discovery
 - [ ] `adapters/base.py` — the `VectorStoreAdapter` Protocol
 - [ ] `adapters/chroma.py`
