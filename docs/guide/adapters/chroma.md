@@ -20,7 +20,7 @@ store:
 
 - **Iteration** uses `collection.get(limit, offset, include=[...])` — offset-based pagination. This is a deliberate, accepted tradeoff specific to Chroma: offset pagination can skip or repeat rows if the collection is written to mid-scan, but Chroma is typically a local, single-writer store where that risk doesn't really apply — unlike the planned pgvector adapter, which uses keyset pagination specifically because that risk is real for a shared Postgres table.
 - **Embeddings are never computed by kbguard asking Chroma to do it.** `get_collection(..., embedding_function=None)` is passed everywhere, so Chroma never silently downloads its own default embedding model — a network call this project's "runs entirely in your environment" principle rules out. kbguard always supplies its own embeddings.
-- **`search()` results come back nearest-first**, regardless of what the underlying distance value means numerically — callers rely on the ordering, not on whether a lower or higher score is "better."
+- **`search()` results come back nearest-first**, satisfying the Protocol's best-match-first guarantee (`adapters/base.py`) directly — Chroma already orders `query()` results this way, so no re-sorting is needed in the adapter.
 - **A real quirk worth knowing if you're testing against Chroma yourself:** two separate `EphemeralClient()` instances in the same process are *not* isolated from each other — creating a collection with the same name in both will fail with `Collection already exists`, even though each client was constructed independently. kbguard's own test suite works around this by using a unique, randomly-suffixed collection name per test rather than relying on client-level isolation.
 
 ## What's not covered yet

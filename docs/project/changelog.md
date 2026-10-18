@@ -16,6 +16,9 @@ All notable changes to kbguard are recorded here, following [Keep a Changelog](h
 ### Fixed
 - Registry test originally relied on `EntryPoint.load()` resolving a real dotted import path, which passed under `python -m pytest` but failed under the plain `pytest` command — fixed by mocking `EntryPoint.load` directly instead.
 
+### Changed
+- `adapters/base.py`'s `search` docstring now states explicitly that results are returned best-match-first — this was true of the Chroma adapter's behavior but hadn't been written into the Protocol itself, which risked a second adapter disagreeing on ordering with no contract forcing consistency.
+
 ### Design decisions locked in
 - Read-only access to vector stores, with no write code path in any adapter.
 - Adapters and checks are `Protocol`-typed plugins, discovered via `importlib.metadata` entry points.
