@@ -24,7 +24,7 @@ It's a `Protocol` (structural typing, PEP 544), not a base class — an adapter 
 Two methods carry contracts that aren't visible from the signature alone:
 
 - **`iter_chunks`** must page through the *entire* collection without holding it all in memory — real adapters implement this with store-specific pagination (keyset for pgvector, cursor/`scroll` for Qdrant, offset for Chroma). The method's docstring in `adapters/base.py` states this explicitly, since it's the contract `contract_tests/` (planned, see below) will verify.
-- **`search`** scores only need to be comparable *within one call* — kbguard never compares a score from one store against a score from another.
+- **`search`** results are returned **best-match-first** — every consumer relies on this ordering, never on the numeric score. Scores only need to be comparable *within one call*; a Chroma distance and a Qdrant similarity aren't the same kind of number, and nothing in kbguard assumes a lower-is-better or higher-is-better direction generically.
 
 ## Finding an adapter at runtime
 
