@@ -1,0 +1,74 @@
+site_name: kbguard
+site_description: Knowledge-base QA and evals for RAG systems, across any vector database.
+repo_name: kbguard
+repo_url: https://github.com/anoopsingh/kbguard
+strict: true
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - toc.integrate
+    - search.suggest
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - Guide:
+      - Configuration: guide/configuration.md
+      - Adapters:
+          - Overview: guide/adapters/overview.md
+          - Chroma: guide/adapters/chroma.md
+          - pgvector: guide/adapters/pgvector.md
+          - Qdrant: guide/adapters/qdrant.md
+          - Pinecone: guide/adapters/pinecone.md
+          - LangChain / LlamaIndex: guide/adapters/langchain-llamaindex.md
+          - Writing a custom adapter: guide/adapters/custom-adapter.md
+      - Knowledge-base checks:
+          - Overview: guide/checks/overview.md
+          - Duplicates: guide/checks/duplicates.md
+          - Stale versions: guide/checks/stale-versions.md
+          - Chunking damage: guide/checks/chunking-damage.md
+          - Contradictions: guide/checks/contradictions.md
+          - Writing a custom check: guide/checks/custom-check.md
+      - Evals:
+          - Golden sets: guide/evals/golden-sets.md
+          - Retrieval metrics: guide/evals/retrieval-metrics.md
+          - Answer metrics: guide/evals/answer-metrics.md
+          - Judge & calibration: guide/evals/judge-and-calibration.md
+      - Health score: guide/health-score.md
+      - Diff & CI: guide/diff-and-ci.md
+  - Reference:
+      - CLI: reference/cli.md
+  - Project:
+      - Roadmap & status: project/roadmap.md
+      - FAQ: project/faq.md
+      - Contributing: project/contributing.md
+      - Changelog: project/changelog.md

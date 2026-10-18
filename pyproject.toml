@@ -49,9 +49,13 @@ dev = [
     "mypy>=1.10",
     "httpx>=0.27",
 ]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+]
 # everything needed to run the full test suite locally / in CI
 all = [
-    "kbguard[chroma,pgvector,qdrant,pinecone,langchain,llamaindex,ragas,deepeval,litellm,sentence-transformers,dedup,nlp,dev]",
+    "kbguard[chroma,pgvector,qdrant,pinecone,langchain,llamaindex,ragas,deepeval,litellm,sentence-transformers,dedup,nlp,dev,docs]",
 ]
 
 [project.entry-points."kbguard.adapters"]

@@ -1,0 +1,17 @@
+# Changelog
+
+All notable changes to kbguard are recorded here, following [Keep a Changelog](https://keepachangelog.com/) conventions. Nothing has been released yet — everything below is under `Unreleased`.
+
+## [Unreleased]
+
+### Added
+- Project scaffold: `pyproject.toml` (packaging, extras per vector store, `ruff`/`mypy`/`pytest` config), `.gitignore`, `docker-compose.yml` for pgvector/Qdrant test fixtures.
+- `models.py`: `Chunk`, `Finding`, `EvalResult`, `Snapshot`, and the `compute_fingerprint()` algorithm used by `diff` and suppressions.
+- This documentation site (MkDocs + Material), written incrementally alongside the code.
+
+### Design decisions locked in
+- Read-only access to vector stores, with no write code path in any adapter.
+- Adapters and checks are `Protocol`-typed plugins, discovered via `importlib.metadata` entry points.
+- `Finding.fingerprint = sha256(check + sorted(chunk_ids) + sorted(identity_keys))[:16]`.
+- Health score formula clamped to `[0, 100]` regardless of configured weights.
+- `kbguard diff --against <baseline> [--snapshot <new>]` as the single CLI form (replacing an earlier spec draft that showed two inconsistent forms).
