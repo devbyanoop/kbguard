@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kbguard"
+version = "0.1.0"
+description = "Knowledge-base QA and evals for RAG systems, across any vector database."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "Anoop Singh" }]
+keywords = ["rag", "vector-database", "testing", "evals", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "jinja2>=3.1",
+    "pyarrow>=16.0",
+    "numpy>=1.26",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+chroma = ["chromadb>=0.5"]
+pgvector = ["psycopg[binary]>=3.1", "pgvector>=0.3"]
+qdrant = ["qdrant-client>=1.9"]
+pinecone = ["pinecone-client>=4.0"]
+langchain = ["langchain-core>=0.2"]
+llamaindex = ["llama-index-core>=0.10"]
+ragas = ["ragas>=0.1"]
+deepeval = ["deepeval>=1.0"]
+litellm = ["litellm>=1.40"]
+sentence-transformers = ["sentence-transformers>=2.7"]
+dedup = ["faiss-cpu>=1.8", "datasketch>=1.6", "hnswlib>=0.8"]
+nlp = ["spacy>=3.7"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "httpx>=0.27",
+]
+# everything needed to run the full test suite locally / in CI
+all = [
+    "kbguard[chroma,pgvector,qdrant,pinecone,langchain,llamaindex,ragas,deepeval,litellm,sentence-transformers,dedup,nlp,dev]",
+]
+
+[project.entry-points."kbguard.adapters"]
+# built-in adapters register the same way a third-party plugin would —
+# no special-casing of "native" vs. "community" stores.
+# Filled in as each adapter is built, e.g.:
+# chroma = "kbguard.adapters.chroma:ChromaAdapter"
+
+[project.scripts]
+kbguard = "kbguard.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kbguard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "contract_tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+packages = ["kbguard"]
