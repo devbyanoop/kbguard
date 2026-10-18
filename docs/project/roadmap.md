@@ -22,7 +22,8 @@ This page is the single source of truth for "is X actually built yet?" — updat
 - [x] `registry.py` — entry-point plugin discovery (`load_adapter`, `list_available`). Only the `adapters` group is wired up; `checks`/`metrics` groups land when their Protocols exist (Week 2/3). Tested, lint-clean, strict-mypy-clean.
 - [x] `adapters/chroma.py` — in-process, registered as a real plugin, covered by adapter-specific tests (pagination, search ordering, embeddings on/off). Lint-clean, strict-mypy-clean.
 - [x] `contract_tests/` — the shared, backend-agnostic suite (count/iteration, id stability, search ordering, text/metadata/embedding round-trip). Parametrized over `BACKENDS` in `contract_tests/conftest.py`; currently just `["chroma"]`. Passing.
-- [ ] `ingest/metadata.py`
+- [x] `ingest/metadata.py` — fills `Chunk`'s standard fields (`source`, `position`, `version`, `updated_at`, `title`) from a chunk's own raw metadata via dotted-path `metadata_map` config, with type coercion and a `validate_metadata_map` check against unknown target fields. Tested (12 cases), lint-clean, strict-mypy-clean.
+- [ ] `ingest/embeddings.py`
 - [ ] `ingest/embeddings.py`
 - [ ] `ingest/exporter.py`
 - [ ] `ingest/snapshot.py`

@@ -12,6 +12,7 @@ All notable changes to kbguard are recorded here, following [Keep a Changelog](h
 - `registry.py`: entry-point based plugin discovery for adapters (`load_adapter`, `list_available`) — the mechanism that lets a new vector store be added as one file with no changes to kbguard's own source.
 - `adapters/chroma.py`: the first working adapter, registered as a real plugin and verified end-to-end (`load_adapter("chroma")` resolves through the actual installed package metadata, not a mock). In-process, no server required.
 - `contract_tests/`: the shared, backend-agnostic suite every adapter must pass (count/iteration, id stability, best-match-first search ordering, text/metadata/embedding round-trip), parametrized over a `BACKENDS` list so adding a new adapter to the suite is a seeder function + one list entry, no new test code. Passing against Chroma.
+- `ingest/metadata.py`: fills `Chunk`'s standard fields from a chunk's own raw metadata via dotted-path `metadata_map` lookups (e.g. `meta.last_modified`), with explicit type coercion (position → int, updated_at → datetime, handling both epoch numbers and ISO-8601 strings including a `Z` suffix on Python 3.10, not just 3.11+) and a `validate_metadata_map` check that rejects an unrecognized target field instead of silently ignoring it.
 - This documentation site (MkDocs + Material), written incrementally alongside the code.
 
 ### Fixed
