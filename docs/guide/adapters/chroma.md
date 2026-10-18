@@ -26,4 +26,5 @@ store:
 ## What's not covered yet
 
 - A remote `HttpClient` connection.
-- The shared `contract_tests/` suite (row-count/id-stability/search/metadata-roundtrip checks run identically against every adapter) — tracked in [Roadmap & status](../../project/roadmap.md).
+
+The shared `contract_tests/` suite (row-count/id-stability/search/metadata-roundtrip checks run identically against every adapter) now exists and passes against Chroma — see [Writing a custom adapter](custom-adapter.md) for how it works.

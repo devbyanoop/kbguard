@@ -61,4 +61,4 @@ kbguard's own built-in adapters register exactly this way — there's no special
 
 ## Adding support for a new store
 
-The registration mechanism above is real today. What's still planned is `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass before it's trusted: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata round-trips. See [Writing a custom adapter](custom-adapter.md) for the current state of that requirement.
+Both the registration mechanism and `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass — are real today: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata and text round-trip, embeddings round-trip approximately (allowing for backends that store vectors as float32). It currently runs against Chroma only; see [Writing a custom adapter](custom-adapter.md) for how to add a backend to it.
