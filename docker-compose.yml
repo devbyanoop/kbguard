@@ -1,5 +1,10 @@
 name: kbguard-test-fixtures
 
+# Works unchanged against a remote Docker engine too (DOCKER_HOST=ssh://...)
+# — the containers just bind to that remote machine's interfaces instead of
+# localhost. See docs/project/contributing.md for pointing the test suite
+# at a non-local host via KBGUARD_TEST_PG_HOST / KBGUARD_TEST_QDRANT_HOST.
+
 services:
   postgres:
     image: pgvector/pgvector:pg16

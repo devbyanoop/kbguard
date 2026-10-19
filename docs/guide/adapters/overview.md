@@ -1,6 +1,6 @@
 # Adapters: overview
 
-The `VectorStoreAdapter` Protocol and the plugin-discovery mechanism (`registry.py`) are implemented and tested. **No concrete adapter exists yet** — Chroma (next) through LangChain/LlamaIndex are all still planned; see the status table below.
+The `VectorStoreAdapter` Protocol, the plugin-discovery mechanism (`registry.py`), and three concrete adapters (Chroma, pgvector, Qdrant) are implemented, registered, and tested against real backends — see the status table below for what's still planned.
 
 ## What an adapter is
 
@@ -23,7 +23,7 @@ It's a `Protocol` (structural typing, PEP 544), not a base class — an adapter 
 
 Two methods carry contracts that aren't visible from the signature alone:
 
-- **`iter_chunks`** must page through the *entire* collection without holding it all in memory — real adapters implement this with store-specific pagination (keyset for pgvector, cursor/`scroll` for Qdrant, offset for Chroma). The method's docstring in `adapters/base.py` states this explicitly, since it's the contract `contract_tests/` (planned, see below) will verify.
+- **`iter_chunks`** must page through the *entire* collection without holding it all in memory — real adapters implement this with store-specific pagination (keyset for pgvector, cursor/`scroll` for Qdrant, offset for Chroma). The method's docstring in `adapters/base.py` states this explicitly, since it's the contract `contract_tests/` (see below) verifies.
 - **`search`** results are returned **best-match-first** — every consumer relies on this ordering, never on the numeric score. Scores only need to be comparable *within one call*; a Chroma distance and a Qdrant similarity aren't the same kind of number, and nothing in kbguard assumes a lower-is-better or higher-is-better direction generically.
 
 ## Finding an adapter at runtime
@@ -50,9 +50,9 @@ kbguard's own built-in adapters register exactly this way — there's no special
 
 | Store | Tier | Status |
 | --- | --- | --- |
-| Chroma | v0.1 native | Planned — next |
-| pgvector | v0.1 native | Planned — Week 1 |
-| Qdrant | v0.1 native | Planned — Week 1 |
+| [Chroma](chroma.md) | v0.1 native | Done |
+| [pgvector](pgvector.md) | v0.1 native | Done |
+| [Qdrant](qdrant.md) | v0.1 native | Done |
 | Pinecone | v0.1 native | Planned — Week 2 |
 | LangChain / LlamaIndex (bridge) | v0.1 bridge | Planned — Week 2 |
 | Weaviate | v0.2 native | Not started |
@@ -61,4 +61,4 @@ kbguard's own built-in adapters register exactly this way — there's no special
 
 ## Adding support for a new store
 
-Both the registration mechanism and `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass — are real today: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata and text round-trip, embeddings round-trip approximately (allowing for backends that store vectors as float32). It currently runs against Chroma only; see [Writing a custom adapter](custom-adapter.md) for how to add a backend to it.
+Both the registration mechanism and `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass — are real today: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata and text round-trip (a superset check for backends like Qdrant whose payload mixes text/id/metadata into one namespace — see [Writing a custom adapter](custom-adapter.md)), embeddings round-trip approximately (allowing for backends that store vectors as float32). Running against Chroma, pgvector, and Qdrant; Docker-dependent backends skip cleanly (not error) when their container isn't reachable.
