@@ -2,7 +2,7 @@
 
 This page is the single source of truth for "is X actually built yet?" — updated the same day any item's status changes, not retroactively. If a page elsewhere in this guide seems to claim more than this page shows as done, trust this page.
 
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-19
 
 ## Phase 0 — scaffold
 
@@ -23,8 +23,7 @@ This page is the single source of truth for "is X actually built yet?" — updat
 - [x] `adapters/chroma.py` — in-process, registered as a real plugin, covered by adapter-specific tests (pagination, search ordering, embeddings on/off). Lint-clean, strict-mypy-clean.
 - [x] `contract_tests/` — the shared, backend-agnostic suite (count/iteration, id stability, search ordering, text/metadata/embedding round-trip). Parametrized over `BACKENDS` in `contract_tests/conftest.py`; currently just `["chroma"]`. Passing.
 - [x] `ingest/metadata.py` — fills `Chunk`'s standard fields (`source`, `position`, `version`, `updated_at`, `title`) from a chunk's own raw metadata via dotted-path `metadata_map` config, with type coercion and a `validate_metadata_map` check against unknown target fields. Tested (12 cases), lint-clean, strict-mypy-clean.
-- [ ] `ingest/embeddings.py`
-- [ ] `ingest/embeddings.py`
+- [x] `ingest/embeddings.py` — `get_embedder` (lazy-loaded, provider-dispatched text→vector function) + `embed_chunk` (reuse-or-recompute policy). `config.py`'s `EmbeddingsConfig` gained an explicit `provider` field (`sentence-transformers` default, or `litellm`) rather than guessing from the model name — guessing wrong would risk document text silently leaving the user's machine. Tested (7 cases, fake modules injected via `sys.modules` so tests don't depend on the optional extras being installed), lint-clean, strict-mypy-clean (added a `[[tool.mypy.overrides]]` entry for untyped optional extras).
 - [ ] `ingest/exporter.py`
 - [ ] `ingest/snapshot.py`
 - [ ] `examples/policy_corpus/` — seeded example corpus

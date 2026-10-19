@@ -82,3 +82,11 @@ target-version = "py310"
 python_version = "3.10"
 strict = true
 packages = ["kbguard"]
+
+# Optional, lazily-imported third-party extras (installed only if the user
+# opts into that extra) that don't ship type stubs mypy can find. Add an
+# entry here, not a `# type: ignore` at each call site, the first time a
+# new one of these is imported somewhere in src/kbguard.
+[[tool.mypy.overrides]]
+module = ["sentence_transformers.*", "litellm.*"]
+ignore_missing_imports = true

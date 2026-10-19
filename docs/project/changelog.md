@@ -13,7 +13,12 @@ All notable changes to kbguard are recorded here, following [Keep a Changelog](h
 - `adapters/chroma.py`: the first working adapter, registered as a real plugin and verified end-to-end (`load_adapter("chroma")` resolves through the actual installed package metadata, not a mock). In-process, no server required.
 - `contract_tests/`: the shared, backend-agnostic suite every adapter must pass (count/iteration, id stability, best-match-first search ordering, text/metadata/embedding round-trip), parametrized over a `BACKENDS` list so adding a new adapter to the suite is a seeder function + one list entry, no new test code. Passing against Chroma.
 - `ingest/metadata.py`: fills `Chunk`'s standard fields from a chunk's own raw metadata via dotted-path `metadata_map` lookups (e.g. `meta.last_modified`), with explicit type coercion (position → int, updated_at → datetime, handling both epoch numbers and ISO-8601 strings including a `Z` suffix on Python 3.10, not just 3.11+) and a `validate_metadata_map` check that rejects an unrecognized target field instead of silently ignoring it.
+- `ingest/embeddings.py`: `get_embedder` (text → vector, lazy-loaded so an optional extra's library is never imported — and never even needed — unless a chunk actually lacks a stored embedding) and `embed_chunk` (the separate reuse-or-recompute policy). Supports `sentence-transformers` (local) and `litellm` (hosted/local-server, e.g. Ollama) providers.
 - This documentation site (MkDocs + Material), written incrementally alongside the code.
+
+### Changed
+- `config.py`'s `EmbeddingsConfig` gained an explicit `provider: "sentence-transformers" | "litellm"` field (default `sentence-transformers`) instead of guessing the backend from `model`'s name — a prefix-based guess would misroute valid local HuggingFace models that don't carry a `sentence-transformers/` prefix, and guessing wrong here means document text silently leaving the user's machine via a hosted API. Backward compatible (additive field with a default).
+- `pyproject.toml`'s `[tool.mypy]` gained a `[[tool.mypy.overrides]]` entry for optional, lazily-imported extras without type stubs (`sentence_transformers`, `litellm`) — the pattern to extend, not per-call-site `# type: ignore`, as more optional adapters/providers are added.
 
 ### Fixed
 - Registry test originally relied on `EntryPoint.load()` resolving a real dotted import path, which passed under `python -m pytest` but failed under the plain `pytest` command — fixed by mocking `EntryPoint.load` directly instead.
