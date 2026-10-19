@@ -31,8 +31,19 @@ class StoreConfig(_StrictModel):
     text_field: str | None = None  # for stores that keep chunk text in metadata
 
 
+EmbeddingsProvider = Literal["sentence-transformers", "litellm"]
+
+
 class EmbeddingsConfig(_StrictModel):
     reuse_stored: bool = True
+    # Explicit, not inferred from `model`'s name — a prefix-based guess
+    # (e.g. "starts with sentence-transformers/") would be fragile (plenty
+    # of valid local HuggingFace models, like BAAI/bge-small-en-v1.5, don't
+    # carry that prefix) and the cost of guessing wrong here is real:
+    # misrouting to the hosted (litellm) path means document text silently
+    # leaves the user's machine, against this project's local-by-default
+    # principle. Default is the fully local provider.
+    provider: EmbeddingsProvider = "sentence-transformers"
     model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
 

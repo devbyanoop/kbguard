@@ -30,6 +30,7 @@ metadata_map:
 
 embeddings:
   reuse_stored: true
+  provider: sentence-transformers   # or litellm
   model: sentence-transformers/all-MiniLM-L6-v2
 
 checks:
@@ -76,10 +77,13 @@ A mapping from kbguard's standard `Chunk` fields (`source`, `version`, `updated_
 
 ### `embeddings`
 
-| Field | Type | Default |
-| --- | --- | --- |
-| `reuse_stored` | bool | `true` |
-| `model` | string | `sentence-transformers/all-MiniLM-L6-v2` |
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `reuse_stored` | bool | `true` | Use the vector already stored in your vector DB when present; only falls back to recomputing for chunks that lack one. |
+| `provider` | `"sentence-transformers"` \| `"litellm"` | `sentence-transformers` | Explicit, not guessed from `model`'s name — see below. |
+| `model` | string | `sentence-transformers/all-MiniLM-L6-v2` | Interpreted according to `provider`. |
+
+`provider` is deliberately explicit rather than inferred from `model` (e.g. by checking for a `"sentence-transformers/"` prefix) — plenty of valid local HuggingFace models (`BAAI/bge-small-en-v1.5`, `intfloat/e5-small-v2`, ...) don't carry that prefix, and guessing wrong here has a real cost: `litellm` routes to a hosted API, so misrouting a model that was meant to stay local means document text leaves your machine. `sentence-transformers` is the default specifically because it runs fully locally — matching this project's "runs entirely in your environment" principle by default, not just as an option.
 
 ### `checks`
 
