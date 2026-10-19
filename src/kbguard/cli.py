@@ -54,7 +54,15 @@ def scan(
         cfg = KBGuardConfig.from_yaml(config)
 
         adapter = load_adapter(cfg.store.adapter)()
-        adapter.connect(**cfg.store.settings)
+        connect_settings = dict(cfg.store.settings)
+        if cfg.store.text_field is not None:
+            # store.text_field is a sibling of store.settings in the config
+            # schema (for stores that keep chunk text inside metadata/payload
+            # rather than a distinct field, e.g. Qdrant) — merged in here so
+            # every adapter receives it as a plain settings key uniformly,
+            # rather than connect() needing two separate parameters.
+            connect_settings["text_field"] = cfg.store.text_field
+        adapter.connect(**connect_settings)
 
         embedder = get_embedder(cfg.embeddings)
 
