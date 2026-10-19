@@ -1,0 +1,11 @@
+store:
+  adapter: chroma
+  collection: demo
+  settings:
+    path: examples/policy_corpus/chroma_data
+
+metadata_map:
+  source: doc_id
+  title: title
+  version: version
+  updated_at: updated_at

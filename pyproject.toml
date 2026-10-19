@@ -79,6 +79,13 @@ addopts = "-ra"
 line-length = 100
 target-version = "py310"
 
+[tool.ruff.lint.flake8-bugbear]
+# typer.Option(...)/typer.Argument(...) in a parameter default is typer's
+# own required idiom — it builds the CLI parser by inspecting the function
+# signature's defaults. Not a mutable-default footgun (B008's actual
+# target); every CLI command in cli.py uses this pattern.
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true
@@ -88,6 +95,17 @@ packages = ["kbguard"]
 # opts into that extra) that don't ship type stubs mypy can find. Add an
 # entry here, not a `# type: ignore` at each call site, the first time a
 # new one of these is imported somewhere in src/kbguard.
+#
+# follow_imports = "skip" (not just ignore_missing_imports): these need to
+# behave identically whether or not the extra happens to be installed in a
+# given environment. ignore_missing_imports only helps when the import
+# can't be found at all — once sentence-transformers (pulling in torch) was
+# actually installed here, mypy started trying to deeply analyze its real,
+# enormous type surface and hung/crashed (exit code 4, mypy's fatal-error
+# code) rather than reporting a normal pass/fail. follow_imports = "skip"
+# tells mypy to never dive into these modules' actual source, regardless of
+# installation state.
 [[tool.mypy.overrides]]
 module = ["sentence_transformers.*", "litellm.*"]
 ignore_missing_imports = true
+follow_imports = "skip"

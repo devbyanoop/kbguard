@@ -31,3 +31,6 @@ Plan/
 
 # MkDocs build output (published separately, not committed to main)
 site/
+
+# Generated demo data — reproducible via examples/policy_corpus/seed.py
+examples/policy_corpus/chroma_data/
