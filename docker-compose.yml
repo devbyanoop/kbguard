@@ -13,7 +13,12 @@ services:
       POSTGRES_PASSWORD: kbguard
       POSTGRES_DB: kbguard_test
     ports:
-      - "5433:5432"
+      # Not 5432 (Postgres's own default, likely already taken) and not
+      # 5433 either (also turned out to collide — with a local Postgres
+      # instance on at least one dev machine this project was built on).
+      # Pick a different host port here if 5434 is taken too; the test
+      # suite always reads it from KBGUARD_TEST_PG_PORT, never assumes it.
+      - "5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kbguard -d kbguard_test"]
       interval: 2s
