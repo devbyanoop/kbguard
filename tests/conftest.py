@@ -13,7 +13,7 @@ import pytest
 # fixtures, by contrast, share reliably across conftest.py files with no
 # import at all, which is what these are for.
 _PG_HOST = os.environ.get("KBGUARD_TEST_PG_HOST", "localhost")
-_PG_PORT = int(os.environ.get("KBGUARD_TEST_PG_PORT", "5433"))
+_PG_PORT = int(os.environ.get("KBGUARD_TEST_PG_PORT", "5434"))
 _QDRANT_HOST = os.environ.get("KBGUARD_TEST_QDRANT_HOST", "localhost")
 _QDRANT_PORT = int(os.environ.get("KBGUARD_TEST_QDRANT_PORT", "6333"))
 

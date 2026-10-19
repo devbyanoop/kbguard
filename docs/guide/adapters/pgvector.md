@@ -10,7 +10,7 @@ store:
   collection: chunks        # the table name
   settings:
     host: localhost
-    port: 5433
+    port: 5434
     user: kbguard
     dbname: my_app
     password_env: PGVECTOR_PASSWORD   # name of an env var, never the password itself

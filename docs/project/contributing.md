@@ -36,7 +36,7 @@ before running tests that touch those adapters, and `docker compose down` when d
 
 ```bash
 export KBGUARD_TEST_PG_HOST=<host>
-export KBGUARD_TEST_PG_PORT=5433
+export KBGUARD_TEST_PG_PORT=5434
 export KBGUARD_TEST_QDRANT_HOST=<host>
 export KBGUARD_TEST_QDRANT_PORT=6333
 ```
