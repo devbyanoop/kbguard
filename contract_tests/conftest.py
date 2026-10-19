@@ -16,7 +16,7 @@ from kbguard.registry import load_adapter
 # at a different machine on the network) — never hardcoded, since a
 # specific host belongs to one contributor's environment, not the repo.
 _PG_HOST = os.environ.get("KBGUARD_TEST_PG_HOST", "localhost")
-_PG_PORT = int(os.environ.get("KBGUARD_TEST_PG_PORT", "5433"))
+_PG_PORT = int(os.environ.get("KBGUARD_TEST_PG_PORT", "5434"))
 _QDRANT_HOST = os.environ.get("KBGUARD_TEST_QDRANT_HOST", "localhost")
 _QDRANT_PORT = int(os.environ.get("KBGUARD_TEST_QDRANT_PORT", "6333"))
 
@@ -206,10 +206,11 @@ def adapter(request: pytest.FixtureRequest) -> Iterator[ContractCase]:
     except Exception as exc:  # noqa: BLE001 — deliberate: any failure setting up optional test infra should skip, not propagate
         # The upfront _is_reachable() check only proves a TCP port is open
         # — not that our expected service is actually the one listening
-        # there. Confirmed by hand: on this dev machine, something unrelated
-        # already occupies localhost:5433 (not our pgvector container),
-        # so the port check passed but the real connection then failed
-        # with a Postgres auth error. Any failure here means this backend
+        # there. Confirmed by hand: on at least one dev machine this
+        # project was built on, an unrelated local Postgres instance
+        # already occupied the default pgvector test port, so the port
+        # check passed while the real connection then failed with a
+        # Postgres auth error. Any failure here means this backend
         # genuinely isn't usable in this environment right now — skip
         # rather than error, same as the upfront reachability check would
         # have done if it had been accurate.
