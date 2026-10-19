@@ -1,6 +1,6 @@
 # Writing a custom adapter
 
-Both pieces below are real and tested: registering an adapter as a plugin, and the shared `contract_tests/` suite it must pass. The suite currently covers one backend (Chroma); adding a second is mechanical (see the last section).
+Both pieces below are real and tested: registering an adapter as a plugin, and the shared `contract_tests/` suite it must pass. The suite runs against Chroma, pgvector, and Qdrant today; adding another backend is mechanical (see the last section).
 
 ## 1. Implement the Protocol
 
@@ -44,19 +44,24 @@ weaviate = "kbguard_weaviate.adapter:WeaviateAdapter"
 - row count from `count()` matches the number of chunks `iter_chunks()` actually yields,
 - chunk ids are identical across two separate `iter_chunks()` calls,
 - `search()` finds a deliberately planted nearest neighbor, and returns exactly `k` results,
-- chunk text and metadata round-trip exactly,
+- chunk text round-trips exactly; metadata round-trips as a **superset** (every originally-seeded key/value must be present, but a backend may legitimately include more) — some backends (Qdrant, confirmed) store text/id/metadata in one flat payload namespace rather than genuinely separate storage, so "nothing else is mixed in" isn't a promise every backend can make,
 - embeddings round-trip **approximately** (`abs=1e-5`) — some backends store vectors as float32 internally, which loses precision relative to Python's native float64; that's an accepted backend characteristic, not a bug the suite flags,
 - `with_embeddings=False` actually omits embeddings.
+
+A backend whose container isn't reachable (e.g. Docker not running) is **skipped with a clear reason**, not errored — confirmed necessary in practice, not just a nice-to-have: a plain "is the port open" check isn't the same as "is *our* service the one listening there" (an unrelated service occupying the same port locally caused exactly this once), so the actual seeding attempt is also wrapped to skip gracefully on any connection failure.
 
 To add a new backend to the suite, in `contract_tests/conftest.py`:
 
 ```python
 def _seed_weaviate(collection: str) -> None:
     # seed SEED_CHUNKS into `collection` using Weaviate's own client —
-    # mirrors _seed_chroma immediately above it
+    # mirrors _seed_chroma/_seed_pgvector/_seed_qdrant immediately above it
 
 _SEEDERS["weaviate"] = _seed_weaviate
 _CONNECT_SETTINGS["weaviate"] = {...}  # whatever connect() needs
+# Add "weaviate" to _FIXTURE_PARAMS too (plain string if always available
+# in-process like Chroma, or the reachability-checked pattern pgvector/
+# Qdrant use if it needs an external service).
 ```
 
 Every test in `test_adapter_contract.py` then runs against `weaviate` automatically — the test functions themselves never name a specific backend, they take the adapter under test as fixture data via the `ContractCase` dataclass.

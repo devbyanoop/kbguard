@@ -64,6 +64,8 @@ all = [
 # built-in adapters register the same way a third-party plugin would —
 # no special-casing of "native" vs. "community" stores.
 chroma = "kbguard.adapters.chroma:ChromaAdapter"
+pgvector = "kbguard.adapters.pgvector:PgVectorAdapter"
+qdrant = "kbguard.adapters.qdrant:QdrantAdapter"
 
 [project.scripts]
 kbguard = "kbguard.cli:app"

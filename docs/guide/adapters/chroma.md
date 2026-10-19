@@ -1,6 +1,6 @@
 # Chroma adapter
 
-The first working adapter — implemented, registered as a real plugin (`kbguard.adapters.chroma:ChromaAdapter`), and covered by tests against a real in-process Chroma instance. `contract_tests/` (the shared suite every adapter must pass — see [Writing a custom adapter](custom-adapter.md)) doesn't exist yet; today's tests are Chroma-specific.
+The first working adapter — implemented, registered as a real plugin (`kbguard.adapters.chroma:ChromaAdapter`), and covered by both adapter-specific tests and the shared `contract_tests/` suite (see [Writing a custom adapter](custom-adapter.md)) against a real in-process Chroma instance.
 
 ## Connecting
 
@@ -18,7 +18,7 @@ store:
 
 ## Behavior notes (verified)
 
-- **Iteration** uses `collection.get(limit, offset, include=[...])` — offset-based pagination. This is a deliberate, accepted tradeoff specific to Chroma: offset pagination can skip or repeat rows if the collection is written to mid-scan, but Chroma is typically a local, single-writer store where that risk doesn't really apply — unlike the planned pgvector adapter, which uses keyset pagination specifically because that risk is real for a shared Postgres table.
+- **Iteration** uses `collection.get(limit, offset, include=[...])` — offset-based pagination. This is a deliberate, accepted tradeoff specific to Chroma: offset pagination can skip or repeat rows if the collection is written to mid-scan, but Chroma is typically a local, single-writer store where that risk doesn't really apply — unlike the [pgvector adapter](pgvector.md), which uses keyset pagination specifically because that risk is real for a shared Postgres table.
 - **Embeddings are never computed by kbguard asking Chroma to do it.** `get_collection(..., embedding_function=None)` is passed everywhere, so Chroma never silently downloads its own default embedding model — a network call this project's "runs entirely in your environment" principle rules out. kbguard always supplies its own embeddings.
 - **`search()` results come back nearest-first**, satisfying the Protocol's best-match-first guarantee (`adapters/base.py`) directly — Chroma already orders `query()` results this way, so no re-sorting is needed in the adapter.
 - **A real quirk worth knowing if you're testing against Chroma yourself:** two separate `EphemeralClient()` instances in the same process are *not* isolated from each other — creating a collection with the same name in both will fail with `Collection already exists`, even though each client was constructed independently. kbguard's own test suite works around this by using a unique, randomly-suffixed collection name per test rather than relying on client-level isolation.
@@ -27,4 +27,4 @@ store:
 
 - A remote `HttpClient` connection.
 
-The shared `contract_tests/` suite (row-count/id-stability/search/metadata-roundtrip checks run identically against every adapter) now exists and passes against Chroma — see [Writing a custom adapter](custom-adapter.md) for how it works.
+The shared `contract_tests/` suite (row-count/id-stability/search/metadata-roundtrip checks run identically against every adapter) passes against Chroma, pgvector, and Qdrant — see [Writing a custom adapter](custom-adapter.md) for how it works.

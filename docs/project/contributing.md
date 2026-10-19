@@ -32,7 +32,16 @@ Some adapters (pgvector, Qdrant) are verified against real containers, not mocke
 docker compose up -d
 ```
 
-before running tests that touch those adapters, and `docker compose down` when done.
+before running tests that touch those adapters, and `docker compose down` when done. If your Docker engine isn't local (e.g. a remote host accessed via `DOCKER_HOST=ssh://user@host`), containers started this way still bind to that remote machine's network interfaces, not yours — point the tests at it with environment variables instead of assuming `localhost`:
+
+```bash
+export KBGUARD_TEST_PG_HOST=<host>
+export KBGUARD_TEST_PG_PORT=5433
+export KBGUARD_TEST_QDRANT_HOST=<host>
+export KBGUARD_TEST_QDRANT_PORT=6333
+```
+
+Without these, tests default to `localhost` on the standard `docker-compose.yml` ports. A backend that isn't reachable is skipped with a clear reason, not treated as a failure — the full suite still runs cleanly without Docker set up at all, just without pgvector/Qdrant coverage.
 
 ## Design rules that apply to every change
 
