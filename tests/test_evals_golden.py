@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from kbguard.evals.golden import freeze, generate
+from kbguard.evals.golden import GoldenRow, freeze, generate, load_golden
 from kbguard.ingest.snapshot import SnapshotReader, SnapshotWriter
 from kbguard.models import Chunk
 
@@ -12,6 +12,7 @@ class _FakeJudge:
         self._questions = questions or {}
         self._default = default
         self.calls: list[str] = []
+        self.model = "fake-model"  # JudgeLike now requires this (ragas/deepeval plugins read it)
 
     def ask_json(self, prompt: str, schema_hint: str) -> dict[str, Any]:
         self.calls.append(prompt)
@@ -241,3 +242,38 @@ def test_against_real_example_corpus(tmp_path: Path) -> None:
 
     lines = out_path.read_text().splitlines()
     assert len(lines) == 2
+
+
+def test_load_golden_round_trips_freeze_output(tmp_path: Path) -> None:
+    csv_path = _write_csv(
+        tmp_path,
+        [{"question": "What is the refund window?", "expected_chunk_ids": "a, b", "reference_answer": "30 days", "approved": True}],
+    )
+    out_path = tmp_path / "golden.jsonl"
+    freeze(csv_path, out_path)
+
+    rows = load_golden(out_path)
+
+    assert len(rows) == 1
+    assert isinstance(rows[0], GoldenRow)
+    assert rows[0].question == "What is the refund window?"
+    assert rows[0].expected_chunk_ids == ["a", "b"]
+    assert rows[0].reference_answer == "30 days"
+    assert len(rows[0].id) == 16
+
+
+def test_load_golden_empty_file_returns_empty_list(tmp_path: Path) -> None:
+    path = tmp_path / "empty.jsonl"
+    path.write_text("")
+
+    assert load_golden(path) == []
+
+
+def test_load_golden_tolerates_trailing_blank_lines(tmp_path: Path) -> None:
+    path = tmp_path / "golden.jsonl"
+    path.write_text('{"id": "abc123", "question": "Q?", "expected_chunk_ids": ["a"], "reference_answer": null}\n\n')
+
+    rows = load_golden(path)
+
+    assert len(rows) == 1
+    assert rows[0].id == "abc123"

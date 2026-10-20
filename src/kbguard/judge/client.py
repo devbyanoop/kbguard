@@ -30,11 +30,11 @@ class JudgeClient:
     """
 
     def __init__(self, model: str, cache: JudgeCache) -> None:
-        self._model = model
+        self.model = model
         self._cache = cache
 
     def ask_json(self, prompt: str, schema_hint: str) -> dict[str, Any]:
-        cache_key = _request_hash(self._model, prompt, schema_hint)
+        cache_key = _request_hash(self.model, prompt, schema_hint)
         cached = self._cache.get(cache_key)
         if cached is not None:
             return cached  # type: ignore[no-any-return]
@@ -51,7 +51,7 @@ class JudgeClient:
             return parsed  # type: ignore[no-any-return]
 
         raise JudgeError(
-            f"judge ({self._model}) returned non-JSON output {_MAX_ATTEMPTS} times in a row: {last_error}"
+            f"judge ({self.model}) returned non-JSON output {_MAX_ATTEMPTS} times in a row: {last_error}"
         )
 
     def _call(self, prompt: str, schema_hint: str) -> str:
@@ -63,7 +63,7 @@ class JudgeClient:
             ) from exc
 
         response = litellm.completion(
-            model=self._model,
+            model=self.model,
             messages=[
                 {"role": "system", "content": f"Respond with JSON only, matching this shape: {schema_hint}"},
                 {"role": "user", "content": prompt},
@@ -72,7 +72,7 @@ class JudgeClient:
         )
         content = response.choices[0].message.content
         if not content:
-            raise JudgeError(f"judge ({self._model}) returned an empty response")
+            raise JudgeError(f"judge ({self.model}) returned an empty response")
         return content  # type: ignore[no-any-return]
 
 

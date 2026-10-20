@@ -1,0 +1,61 @@
+# Copy this file to .github/workflows/kbguard.yml IN YOUR OWN REPO (not
+# kbguard's) to run kbguard against your own knowledge base on a schedule,
+# or after your ingestion pipeline updates it. This is a template, not a
+# file kbguard's own CI runs — see .github/workflows/kbguard.yml in this
+# repo for that one.
+#
+# What you'll need to fill in / adjust below, marked with TODO:
+#   - which extras your vector store/judge/eval-metric choices need
+#   - your kbguard.yaml (store, judge, evals, fail_on — see
+#     docs/guide/configuration.md)
+#   - secrets for your vector store credentials and judge API key, set
+#     in your repo's Settings -> Secrets and variables -> Actions
+
+name: kb-quality
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1"  # weekly, Monday 02:00 UTC — or trigger this from your own ingestion workflow instead
+
+jobs:
+  kbguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # TODO: swap qdrant,ragas for whatever your store/judge/metrics
+      # actually are — see docs/guide/adapters/overview.md and
+      # docs/guide/evals/*.md for the full extras list.
+      - run: pip install "kbguard[qdrant,ragas]"
+
+      - name: Scan
+        run: kbguard scan --collection policies
+        env:
+          # TODO: match whatever env var name your kbguard.yaml's
+          # store.settings.api_key_env (or similar) actually references.
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+
+      - name: Eval
+        run: kbguard eval --collection policies
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Diff against last week's baseline
+        # TODO: --against needs a real snapshot id. The simplest approach:
+        # keep .kbguard/snapshots/ in a persisted cache or artifact between
+        # runs (actions/cache or actions/upload-artifact +
+        # download-artifact), and read the previous run's snapshot id back
+        # here rather than hardcoding one.
+        run: kbguard diff --collection policies --against <baseline-snapshot-id>
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kbguard-report
+          path: .kbguard/snapshots/*/report.html

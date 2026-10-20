@@ -12,7 +12,17 @@ class JudgeLike(Protocol):
     JudgeClient (judge/client.py) without any inheritance, same pattern as
     VectorStoreAdapter: lets a test pass a lightweight fake judge (no
     cache file, no litellm) the same way test_checks_stale_versions.py's
-    _FakeSearchAdapter already stands in for a real adapter."""
+    _FakeSearchAdapter already stands in for a real adapter.
+
+    `model` is required (not just `ask_json`) because evals/metrics/
+    ragas_plugin.py and deepeval_plugin.py need the pinned model id to
+    construct *their own* LLM wrapper — those libraries have their own
+    LLM-calling machinery (instructor, in ragas's case) that kbguard's
+    JudgeCache/ask_json retry logic doesn't plug into, so the model
+    choice is the one thing actually shared, not the call mechanism.
+    """
+
+    model: str
 
     def ask_json(self, prompt: str, schema_hint: str) -> dict[str, Any]: ...
 

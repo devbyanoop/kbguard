@@ -9,6 +9,18 @@ from kbguard.models import Chunk
 # batch_size larger than this is silently clamped, not an error.
 _MAX_LIST_PAGE_SIZE = 100
 
+# Every Index method (describe_index_stats/list/fetch/query) accepts an
+# explicit per-call timeout, defaulting to None -- i.e. no timeout at all
+# -- confirmed by hand after a real live-index test run hung indefinitely
+# under sustained real-world load (free-tier rate limiting, almost
+# certainly, after many repeated test runs against the same index), not
+# just slow. Without this, a throttled or stalled connection blocks
+# forever rather than failing cleanly. `Pinecone.list_indexes()` has no
+# timeout parameter at all (confirmed from its real signature) -- a real,
+# unavoidable gap in the client itself, not something this adapter can
+# work around.
+_DEFAULT_TIMEOUT = 30.0
+
 
 class PineconeAdapter:
     name = "pinecone"
@@ -43,6 +55,7 @@ class PineconeAdapter:
         # Qdrant -- chunk text lives inside the flat metadata dict under
         # whatever key the client used.
         self._text_field = settings.get("text_field", "text")
+        self._timeout = settings.get("timeout", _DEFAULT_TIMEOUT)
         self._client = Pinecone(api_key=api_key)
 
     def _require_client(self) -> Any:
@@ -64,7 +77,7 @@ class PineconeAdapter:
         return self._require_client().list_indexes().names()  # type: ignore[no-any-return]
 
     def count(self, collection: str) -> int:
-        stats = self._index_for(collection).describe_index_stats()
+        stats = self._index_for(collection).describe_index_stats(timeout=self._timeout)
         if self._namespace:
             summary = stats.namespaces.get(self._namespace)
             return summary.vector_count if summary is not None else 0
@@ -83,11 +96,11 @@ class PineconeAdapter:
         # fetch() is the separate call that returns the actual vectors,
         # exactly the "list ids, then fetch in batches" shape the
         # architecture spec calls for.
-        for page in index.list(limit=page_size, namespace=self._namespace):
+        for page in index.list(limit=page_size, namespace=self._namespace, timeout=self._timeout):
             ids = [item.id for item in page.vectors]
             if not ids:
                 continue
-            fetched = index.fetch(ids=ids, namespace=self._namespace)
+            fetched = index.fetch(ids=ids, namespace=self._namespace, timeout=self._timeout)
             for vector_id, vector in fetched.vectors.items():
                 yield self._to_chunk(vector_id, vector.values, vector.metadata, with_embeddings)
 
@@ -106,6 +119,7 @@ class PineconeAdapter:
             filter=filters,
             include_values=True,
             include_metadata=True,
+            timeout=self._timeout,
         )
         # Best-match-first is Pinecone's own guarantee for query(), same as
         # Qdrant's query_points() -- no re-sorting needed here either.

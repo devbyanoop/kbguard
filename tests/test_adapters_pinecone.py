@@ -26,13 +26,13 @@ class _FakeIndex:
         self.fetch_calls: list[tuple[tuple[str, ...], str]] = []
         self.query_calls: list[dict[str, Any]] = []
 
-    def describe_index_stats(self) -> _Obj:
+    def describe_index_stats(self, *, timeout: float | None = None) -> _Obj:
         return _Obj(total_vector_count=len(self._vectors), namespaces={})
 
-    def list(self, *, limit: int, namespace: str) -> list[_Obj]:
+    def list(self, *, limit: int, namespace: str, timeout: float | None = None) -> list[_Obj]:
         return [_Obj(vectors=[_Obj(id=vid) for vid in page]) for page in self._pages if page]
 
-    def fetch(self, *, ids: list[str], namespace: str) -> _Obj:
+    def fetch(self, *, ids: list[str], namespace: str, timeout: float | None = None) -> _Obj:
         self.fetch_calls.append((tuple(ids), namespace))
         return _Obj(vectors={vid: self._vectors[vid] for vid in ids})
 
@@ -238,3 +238,34 @@ def test_connect_resolves_api_key_from_env(monkeypatch: pytest.MonkeyPatch) -> N
     adapter.connect(api_key_env="PINECONE_KEY")
 
     assert captured["api_key"] == "secret-value"
+
+
+def test_query_is_called_with_a_timeout_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A real test run hung indefinitely against a throttled live index
+    # specifically because no timeout was ever passed through -- this
+    # locks in that every real call now carries one.
+    index = _FakeIndex("policies", pages=[], vectors={})
+    client = _FakePinecone()
+    client.indexes["policies"] = index
+    _install_fake_pinecone(monkeypatch, client)
+
+    adapter = PineconeAdapter()
+    adapter.connect(api_key="fake-key")
+
+    adapter.search("policies", [1.0], k=1)
+
+    assert index.query_calls[0]["timeout"] == 30.0
+
+
+def test_timeout_setting_overrides_the_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    index = _FakeIndex("policies", pages=[], vectors={})
+    client = _FakePinecone()
+    client.indexes["policies"] = index
+    _install_fake_pinecone(monkeypatch, client)
+
+    adapter = PineconeAdapter()
+    adapter.connect(api_key="fake-key", timeout=5.0)
+
+    adapter.search("policies", [1.0], k=1)
+
+    assert index.query_calls[0]["timeout"] == 5.0
