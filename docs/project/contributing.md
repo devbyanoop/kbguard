@@ -43,6 +43,12 @@ export KBGUARD_TEST_QDRANT_PORT=6333
 
 Without these, tests default to `localhost` on the standard `docker-compose.yml` ports. A backend that isn't reachable is skipped with a clear reason, not treated as a failure — the full suite still runs cleanly without Docker set up at all, just without pgvector/Qdrant coverage.
 
+## `.env` for local credentials
+
+Instead of `export`-ing these for every new shell, copy `.env.example` to `.env` (gitignored, never committed) and fill in real values there — a repo-root `conftest.py` loads it automatically (`python-dotenv`) before any test runs, so `KBGUARD_TEST_PG_HOST`, `PINECONE_API_KEY`, etc. are picked up the same way regardless of which shell you're in. Values already set in your real environment take priority over `.env` (`load_dotenv()`'s default `override=False`).
+
+The same skip-cleanly-when-unconfigured rule applies: `tests/test_adapters_pinecone_live.py` needs `PINECONE_API_KEY`/`PINECONE_TEST_INDEX` (a real, free-tier index, dimension 4, metric cosine) and skips with a clear reason when they aren't set — never an error, and the full suite (including this file) still passes cleanly without a Pinecone account at all.
+
 ## Design rules that apply to every change
 
 1. **Everything downstream of adapters works on `Chunk` records**, never on a database client directly — this is what keeps any vector store pluggable.
