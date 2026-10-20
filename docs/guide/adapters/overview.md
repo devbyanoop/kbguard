@@ -56,7 +56,7 @@ kbguard's own built-in adapters register exactly this way — there's no special
 | [Chroma](chroma.md) | v0.1 native | Done |
 | [pgvector](pgvector.md) | v0.1 native | Done |
 | [Qdrant](qdrant.md) | v0.1 native | Done |
-| [Pinecone](pinecone.md) | v0.1 native | Done — unit-tested against a fake client, no live index available to test against |
+| [Pinecone](pinecone.md) | v0.1 native | Done — verified against both a fake client and a real live index |
 | [LangChain / LlamaIndex](langchain-llamaindex.md) (bridge) | v0.1 bridge | Done — tested against a real `InMemoryVectorStore` |
 | Weaviate | v0.2 native | Not started |
 | Milvus / Zilliz | v0.2 native | Not started |
@@ -66,4 +66,4 @@ kbguard's own built-in adapters register exactly this way — there's no special
 
 Both the registration mechanism and `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass — are real today: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata and text round-trip (a superset check for backends like Qdrant whose payload mixes text/id/metadata into one namespace — see [Writing a custom adapter](custom-adapter.md)), embeddings round-trip approximately (allowing for backends that store vectors as float32). Running against Chroma, pgvector, and Qdrant; Docker-dependent backends skip cleanly (not error) when their container isn't reachable.
 
-Pinecone and the LangChain/LlamaIndex bridge aren't in `contract_tests/` — Pinecone is a managed cloud service with no local/self-hosted way to run it, and the bridge's whole premise (wrapping an arbitrary already-constructed `VectorStore` instance) doesn't fit a single parametrized backend fixture the way the other four do. Each has its own dedicated test file instead — see their pages for exactly what's covered.
+Pinecone and the LangChain/LlamaIndex bridge aren't in `contract_tests/` — Pinecone is a managed cloud service with no Docker option, and the bridge's whole premise (wrapping an arbitrary already-constructed `VectorStore` instance) doesn't fit a single parametrized backend fixture the way the other four do. Each has its own dedicated test file(s) instead — see their pages for exactly what's covered. Pinecone's real, free-tier account is reached via `.env` (see [Contributing](../../project/contributing.md)), the same pattern as pgvector/Qdrant's remote Docker host.
