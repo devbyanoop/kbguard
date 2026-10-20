@@ -2,7 +2,7 @@
 
 This page is the single source of truth for "is X actually built yet?" — updated the same day any item's status changes, not retroactively. If a page elsewhere in this guide seems to claim more than this page shows as done, trust this page.
 
-**Last updated:** 2026-10-20
+**Last updated:** 2026-10-20 (later same day)
 
 ## Phase 0 — scaffold
 
@@ -39,7 +39,8 @@ This page is the single source of truth for "is X actually built yet?" — updat
 
 - [x] `checks/base.py` — the `Check` Protocol + `CheckContext` (config + optional live adapter/collection for checks needing a self-retrieval probe; no `judge` field yet — added when `judge/client.py` exists and `contradictions.py` actually needs it). Plus `registry.py` gained a `checks` entry-point group (`load_check`, `list_available("checks")`) — the mechanism that keeps `faiss`/`datasketch` honestly optional: confirmed by hand that importing the registry or an adapter pulls in neither, only `load_check("duplicates")` does.
 - [x] `checks/duplicates.py` — exact (normalized-text hash) + near (`faiss` cosine ANN candidates, confirmed only with `datasketch` word-set Jaccard) duplicate detection, union-find clustering for transitive chains, severity escalated to `error` across sources. Verified against the real example corpus: finds exactly the two planted duplicate pairs, nothing else. Found and fixed a real bug in the original architecture spec along the way: the default `minhash_jaccard: 0.9` was measured against real paraphrased text and would almost never fire — corrected to `0.3` (see `docs/guide/checks/duplicates.md` for the full comparison table). `SnapshotReader` gained a bulk `vectors()` accessor (deferred from Week 1 specifically until this real caller needed it). `hnswlib` (originally planned as an ANN option) can't build on Windows without MSVC Build Tools — used `faiss-cpu` instead, which ships a working prebuilt wheel. Also closed a real gap from Week 1: `tests/test_plugin_registration.py` only ever tested Chroma's registration, never pgvector/Qdrant — fixed.
-- [ ] `checks/stale_versions.py`, `checks/chunking_damage.py`
+- [x] `checks/stale_versions.py` — groups by `title` (falling back to a normalized source/filename stem), orders by `updated_at` (falling back to `version` string), flags every member but the newest, escalates to `error` via a self-retrieval probe (query the *live* store with the stale chunk's own embedding, check if the current version also comes back in the top 5). Verified against the real example corpus and a live Chroma connection: the planted pair is found and genuinely escalates, confirmed by a real search call, not assumed.
+- [ ] `checks/chunking_damage.py`
 - [ ] `judge/client.py`
 - [ ] `checks/contradictions.py`
 - [ ] `adapters/pinecone.py`, `adapters/bridge_langchain.py`
