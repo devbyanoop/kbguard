@@ -136,6 +136,12 @@ def test_fewer_than_two_chunks_yields_nothing(tmp_path: Path) -> None:
     assert findings == []
 
 
+def test_empty_snapshot_yields_nothing(tmp_path: Path) -> None:
+    findings = _run(_snapshot(tmp_path, []))
+
+    assert findings == []
+
+
 def test_unrelated_chunks_yield_nothing(tmp_path: Path) -> None:
     chunks = [
         _chunk("a", "Refunds within 30 days.", [1.0, 0.0, 0.0]),
