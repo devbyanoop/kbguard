@@ -9,3 +9,14 @@ metadata_map:
   title: title
   version: version
   updated_at: updated_at
+
+checks:
+  chunking_damage:
+    # Not the global default (40) -- this corpus's chunks are deliberately
+    # short, single-sentence snippets for easy hand-verification, not
+    # representative of real production chunk sizes. 10 cleanly catches
+    # only the one chunk actually meant to demonstrate "too small"
+    # (tiny-chunk-1, 3 words) without flagging every other short-but-fine
+    # chunk in the corpus.
+    min_tokens: 10
+    required_metadata: [source]

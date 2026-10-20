@@ -1,6 +1,6 @@
 # Example policy corpus
 
-A small, synthetic company-policy knowledge base (16 chunks) with deliberately planted problems, used:
+A small, synthetic company-policy knowledge base (17 chunks) with deliberately planted problems, used:
 
 - today, to have something real for `kbguard scan` to point at (Week 1);
 - from Week 2 onward, as the fixture every knowledge-base check is tested against — "every seeded problem in this corpus is found" is that week's actual done-when criterion.
@@ -12,7 +12,7 @@ python examples/policy_corpus/seed.py
 kbguard scan --collection demo --config examples/policy_corpus/kbguard.yaml
 ```
 
-`seed.py` is idempotent — running it again when the collection already has all 16 chunks is a no-op.
+`seed.py` is idempotent — running it again when the collection already has all 17 chunks is a no-op.
 
 ## What's planted, and which check (Week 2+) should catch it
 
@@ -28,6 +28,7 @@ kbguard scan --collection demo --config examples/policy_corpus/kbguard.yaml
 | `tiny-chunk-1` | Far below the default `min_tokens` | `chunking_damage` (size) |
 | `broken-sentence-1` | Starts mid-sentence, no overlap | `chunking_damage` (broken sentence) |
 | `no-source-chunk` | No `doc_id` at all → `source` stays unmapped | `chunking_damage` (missing metadata) |
+| `encoding-noise-1` | Stray control characters (bad PDF-extraction artifact) | `chunking_damage` (encoding noise) |
 | `privacy-1`, `contact-1`, `account-1` | None — clean, for contrast | (none should fire) |
 
 ## On the embeddings

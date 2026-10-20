@@ -32,9 +32,9 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def test_corpus_has_sixteen_chunks() -> None:
-    assert len(seed_module.CHUNKS) == 16
-    assert len({c["id"] for c in seed_module.CHUNKS}) == 16  # ids unique
+def test_corpus_has_seventeen_chunks() -> None:
+    assert len(seed_module.CHUNKS) == 17
+    assert len({c["id"] for c in seed_module.CHUNKS}) == 17  # ids unique
 
 
 def test_only_intended_pairs_exceed_duplicate_threshold() -> None:
@@ -81,7 +81,7 @@ def test_seed_populates_a_real_chroma_collection(tmp_path: Path) -> None:
     client = chromadb.PersistentClient(path=str(tmp_path / "chroma_data"))
     collection = client.get_collection("demo", embedding_function=None)
 
-    assert collection.count() == 16
+    assert collection.count() == 17
 
 
 def test_seed_is_idempotent(tmp_path: Path) -> None:
@@ -94,11 +94,11 @@ def test_seed_is_idempotent(tmp_path: Path) -> None:
     client = chromadb.PersistentClient(path=str(path))
     collection = client.get_collection("demo", embedding_function=None)
 
-    assert collection.count() == 16
+    assert collection.count() == 17
 
 
 @pytest.mark.parametrize("chunk_id", [c["id"] for c in seed_module.CHUNKS])
 def test_every_chunk_embedding_matches_declared_dimension(chunk_id: str) -> None:
     by_id = {c["id"]: c for c in seed_module.CHUNKS}
 
-    assert len(by_id[chunk_id]["embedding"]) == 13
+    assert len(by_id[chunk_id]["embedding"]) == 14

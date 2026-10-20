@@ -1,6 +1,7 @@
 from kbguard.adapters.chroma import ChromaAdapter
 from kbguard.adapters.pgvector import PgVectorAdapter
 from kbguard.adapters.qdrant import QdrantAdapter
+from kbguard.checks.chunking_damage import ChunkingDamageCheck
 from kbguard.checks.duplicates import DuplicatesCheck
 from kbguard.checks.stale_versions import StaleVersionsCheck
 from kbguard.registry import load_adapter, load_check
@@ -31,3 +32,7 @@ def test_duplicates_check_is_registered() -> None:
 
 def test_stale_versions_check_is_registered() -> None:
     assert load_check("stale_versions") is StaleVersionsCheck
+
+
+def test_chunking_damage_check_is_registered() -> None:
+    assert load_check("chunking_damage") is ChunkingDamageCheck
