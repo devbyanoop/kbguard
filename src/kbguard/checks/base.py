@@ -7,6 +7,16 @@ from kbguard.ingest.snapshot import SnapshotReader
 from kbguard.models import Finding, Severity
 
 
+class JudgeLike(Protocol):
+    """Structural type for CheckContext.judge — matched by the real
+    JudgeClient (judge/client.py) without any inheritance, same pattern as
+    VectorStoreAdapter: lets a test pass a lightweight fake judge (no
+    cache file, no litellm) the same way test_checks_stale_versions.py's
+    _FakeSearchAdapter already stands in for a real adapter."""
+
+    def ask_json(self, prompt: str, schema_hint: str) -> dict[str, Any]: ...
+
+
 @dataclass
 class CheckContext:
     """Everything a Check's run() might need beyond the snapshot itself.
@@ -18,14 +28,16 @@ class CheckContext:
 
     `adapter`/`collection` are only set for checks that need to query the
     live store directly, not just read from the snapshot (e.g.
-    stale_versions' self-retrieval probe). `judge` isn't a field yet —
-    added when judge/client.py exists and contradictions.py actually needs
-    it, not speculatively.
+    stale_versions' self-retrieval probe). `judge` is only set for checks
+    that confirm candidates with an LLM (contradictions.py is the first
+    and, as of v0.1, only one) — added now that there's a real caller,
+    not speculatively ahead of one.
     """
 
     config: Any
     adapter: VectorStoreAdapter | None = None
     collection: str | None = None
+    judge: JudgeLike | None = None
 
 
 class Check(Protocol):

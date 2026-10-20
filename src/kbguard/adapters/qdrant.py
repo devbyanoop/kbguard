@@ -9,6 +9,7 @@ from kbguard.models import Chunk
 
 class QdrantAdapter:
     name = "qdrant"
+    iteration_mode = "full"
 
     def __init__(self) -> None:
         self._client: QdrantClient | None = None

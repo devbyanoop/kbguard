@@ -1,6 +1,6 @@
 # Adapters: overview
 
-The `VectorStoreAdapter` Protocol, the plugin-discovery mechanism (`registry.py`), and three concrete adapters (Chroma, pgvector, Qdrant) are implemented, registered, and tested against real backends — see the status table below for what's still planned.
+The `VectorStoreAdapter` Protocol, the plugin-discovery mechanism (`registry.py`), and all five v0.1 adapters (Chroma, pgvector, Qdrant, Pinecone, the LangChain/LlamaIndex bridge) are implemented, registered, and tested — see the status table below for exactly what each one's testing does and doesn't cover.
 
 ## What an adapter is
 
@@ -9,6 +9,7 @@ An adapter is the only part of kbguard that talks to a specific vector database.
 ```python
 class VectorStoreAdapter(Protocol):
     name: str
+    iteration_mode: Literal["full", "sampled"]
 
     def connect(self, **settings: Any) -> None: ...
     def collections(self) -> list[str]: ...
@@ -25,6 +26,8 @@ Two methods carry contracts that aren't visible from the signature alone:
 
 - **`iter_chunks`** must page through the *entire* collection without holding it all in memory — real adapters implement this with store-specific pagination (keyset for pgvector, cursor/`scroll` for Qdrant, offset for Chroma). The method's docstring in `adapters/base.py` states this explicitly, since it's the contract `contract_tests/` (see below) verifies.
 - **`search`** results are returned **best-match-first** — every consumer relies on this ordering, never on the numeric score. Scores only need to be comparable *within one call*; a Chroma distance and a Qdrant similarity aren't the same kind of number, and nothing in kbguard assumes a lower-is-better or higher-is-better direction generically.
+
+Every adapter also declares `iteration_mode`: `"full"` for the four native adapters (`iter_chunks` genuinely walks the entire collection), `"sampled"` for the LangChain/LlamaIndex bridge, whose wrapped `VectorStore` exposes no enumeration API at all — only similarity search. `SnapshotWriter` records this verbatim into the snapshot manifest, so a sampled scan is never mistaken for a complete one downstream.
 
 ## Finding an adapter at runtime
 
@@ -53,8 +56,8 @@ kbguard's own built-in adapters register exactly this way — there's no special
 | [Chroma](chroma.md) | v0.1 native | Done |
 | [pgvector](pgvector.md) | v0.1 native | Done |
 | [Qdrant](qdrant.md) | v0.1 native | Done |
-| Pinecone | v0.1 native | Planned — Week 2 |
-| LangChain / LlamaIndex (bridge) | v0.1 bridge | Planned — Week 2 |
+| [Pinecone](pinecone.md) | v0.1 native | Done — unit-tested against a fake client, no live index available to test against |
+| [LangChain / LlamaIndex](langchain-llamaindex.md) (bridge) | v0.1 bridge | Done — tested against a real `InMemoryVectorStore` |
 | Weaviate | v0.2 native | Not started |
 | Milvus / Zilliz | v0.2 native | Not started |
 | Elasticsearch / OpenSearch, MongoDB Atlas, Redis | v0.3 / community | Not started |
@@ -62,3 +65,5 @@ kbguard's own built-in adapters register exactly this way — there's no special
 ## Adding support for a new store
 
 Both the registration mechanism and `contract_tests/` — the shared test suite every adapter (built-in or third-party) must pass — are real today: row count matches iteration, ids are stable across scans, `search` finds a planted neighbor, metadata and text round-trip (a superset check for backends like Qdrant whose payload mixes text/id/metadata into one namespace — see [Writing a custom adapter](custom-adapter.md)), embeddings round-trip approximately (allowing for backends that store vectors as float32). Running against Chroma, pgvector, and Qdrant; Docker-dependent backends skip cleanly (not error) when their container isn't reachable.
+
+Pinecone and the LangChain/LlamaIndex bridge aren't in `contract_tests/` — Pinecone is a managed cloud service with no local/self-hosted way to run it, and the bridge's whole premise (wrapping an arbitrary already-constructed `VectorStore` instance) doesn't fit a single parametrized backend fixture the way the other four do. Each has its own dedicated test file instead — see their pages for exactly what's covered.

@@ -47,11 +47,19 @@ class SnapshotWriter:
     is about the *checks'* own ANN indices, not snapshot writing itself.
     """
 
-    def __init__(self, path: Path, collection: str, adapter_name: str, embedding_model: str) -> None:
+    def __init__(
+        self,
+        path: Path,
+        collection: str,
+        adapter_name: str,
+        embedding_model: str,
+        iteration_mode: str = "full",
+    ) -> None:
         self._path = path
         self._collection = collection
         self._adapter_name = adapter_name
         self._embedding_model = embedding_model
+        self._iteration_mode = iteration_mode
         self._chunks: list[Chunk] = []
         self._findings: list[Finding] = []
         self._seen_chunk_ids: set[str] = set()
@@ -106,6 +114,12 @@ class SnapshotWriter:
             "finding_count": len(self._findings),
             "embedding_model": self._embedding_model,
             "embedding_dim": self._embedding_dim or 0,
+            # "sampled" means iter_chunks() couldn't enumerate the whole
+            # collection and approximated coverage via search instead (see
+            # adapters/base.py's VectorStoreAdapter.iteration_mode) — a
+            # downstream report/health score must never present a sampled
+            # snapshot's numbers as if they covered the whole collection.
+            "iteration_mode": self._iteration_mode,
         }
         (self._path / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
@@ -228,6 +242,48 @@ class SnapshotReader:
                 if check is not None and data["check"] != check:
                     continue
                 yield Finding(**data)
+
+
+def append_findings(path: Path, findings: list[Finding]) -> None:
+    """Writes check findings into an *already-closed* snapshot.
+
+    Not a SnapshotWriter method: a check's run() takes a SnapshotReader
+    (checks/base.py's Check Protocol), and a SnapshotReader only works
+    against an already-closed snapshot (chunks.parquet/vectors.npy don't
+    exist until close() writes them) — so a check's findings are
+    necessarily known only *after* the snapshot that produced them is
+    already closed, never before, unlike SnapshotWriter.write_finding(),
+    which exists for the (e.g. test fixture) case where findings are
+    already known at construction time. cli.py's `scan` command is the
+    real caller: write chunks, close(), run every enabled check against
+    the result, then append_findings() with what they found.
+
+    findings.jsonl and the finding_fingerprints table already exist from
+    the original close() call (empty if no findings were passed to it,
+    per _write_index/_write_findings always creating them unconditionally)
+    — so this only ever appends, never recreates either.
+    """
+    with (path / "findings.jsonl").open("a", encoding="utf-8") as f:
+        for finding in findings:
+            f.write(json.dumps(dataclasses.asdict(finding)) + "\n")
+
+    conn = sqlite3.connect(path / "index.sqlite")
+    try:
+        try:
+            conn.executemany(
+                "INSERT INTO finding_fingerprints (fingerprint, check_name) VALUES (?, ?)",
+                [(f.fingerprint, f.check) for f in findings if f.fingerprint],
+            )
+        except sqlite3.IntegrityError as exc:
+            raise SnapshotError(f"duplicate finding fingerprint appended to snapshot: {exc}") from exc
+        conn.commit()
+    finally:
+        conn.close()
+
+    manifest_path = path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["finding_count"] = manifest.get("finding_count", 0) + len(findings)
+    manifest_path.write_text(json.dumps(manifest, indent=2))
 
 
 def _chunks_to_table(chunks: list[Chunk]) -> pa.Table:

@@ -37,6 +37,7 @@ def _require_setting(settings: dict[str, Any], key: str) -> Any:
 
 class PgVectorAdapter:
     name = "pgvector"
+    iteration_mode = "full"
 
     def __init__(self) -> None:
         self._conn: psycopg.Connection[Any] | None = None

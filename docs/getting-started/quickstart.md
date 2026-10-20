@@ -2,9 +2,6 @@
 
 This walks through a real `kbguard scan`, using the bundled example corpus (`examples/policy_corpus/`) so you don't need a vector database of your own yet. Every command below was run for real against this repo before being written here.
 
-!!! note "No report yet"
-    `kbguard scan` writes a snapshot — the raw scanned data — but nothing reads it back into an HTML report yet. Checks, the health score, and `kbguard report` are Week 2. This page will grow to include opening a report once that exists; for now, the quickstart ends at inspecting the snapshot directly.
-
 ## 1. Install
 
 Follow [Installation](installation.md) first (`pip install -e ".[dev,chroma]"` from a cloned checkout — kbguard isn't on PyPI yet).
@@ -42,14 +39,27 @@ kbguard scan --collection demo --config examples/policy_corpus/kbguard.yaml
 ```
 
 ```text
-Wrote snapshot '2026-10-20T05-42-22_demo': 17 chunks -> .kbguard\snapshots\2026-10-20T05-42-22_demo
+Wrote snapshot '2026-10-20T06-47-31_demo': 17 chunks -> .kbguard\snapshots\2026-10-20T06-47-31_demo (report.html, results.json)
 ```
 
-(Your snapshot id will have today's actual timestamp.) The output lands under `.kbguard/snapshots/<id>/` relative to wherever you ran the command — gitignored, since it contains your actual document text (see [Configuration](../guide/configuration.md)).
+(Your snapshot id will have today's actual timestamp.) This now also runs every enabled check (`duplicates`, `stale_versions`, `chunking_damage` — `contradictions` stays off by default since it needs a configured judge, see [Contradictions](../guide/checks/contradictions.md)), computes a health score, and writes `results.json` + `report.html` into the same snapshot directory under `.kbguard/snapshots/<id>/` — gitignored, since it contains your actual document text (see [Configuration](../guide/configuration.md)).
 
-## 5. Inspect the snapshot
+## 5. Open the report
 
-There's no `kbguard report` yet (Week 2), but you can read a snapshot directly with `SnapshotReader`:
+```bash
+# Windows
+start .kbguard\snapshots\<your-snapshot-id>\report.html
+# macOS
+open .kbguard/snapshots/<your-snapshot-id>/report.html
+```
+
+You should see a health score of **86** and 10 findings grouped by check: 2 duplicate pairs, 1 stale-version pair, and 7 chunking-damage findings across the corpus's 6 planted rule violations. Re-render the same report without re-scanning at any point:
+
+```bash
+kbguard report <your-snapshot-id> --config examples/policy_corpus/kbguard.yaml
+```
+
+You can also read the snapshot directly:
 
 ```python
 from pathlib import Path
@@ -67,5 +77,6 @@ You should see all 17 chunks, with `source` filled in from each chunk's `doc_id`
 
 ## What's next
 
-- **Week 2** adds the knowledge-base checks (`duplicates`, `stale_versions`, `chunking_damage`, `contradictions`), a health score, and `kbguard report` — at which point this corpus's planted problems should all show up as findings.
+- Enable `contradictions` (set `judge.model` and `checks.contradictions.enabled: true`) to see the corpus's one genuine cross-document contradiction (`warranty-a` vs. `warranty-b`) show up too.
+- **Week 3** adds evals, retrieval metrics, judge calibration, and `kbguard diff` for CI gating.
 - Track real progress on [Roadmap & status](../project/roadmap.md).
