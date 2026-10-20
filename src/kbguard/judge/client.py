@@ -69,6 +69,13 @@ class JudgeClient:
                 {"role": "user", "content": prompt},
             ],
             response_format={"type": "json_object"},
+            # LLM-as-judge calls should be as reproducible as the provider
+            # allows -- a judge whose verdict flips between identical calls
+            # undermines every check that relies on it. temperature=0 asks
+            # for the model's most likely token at each step instead of
+            # sampling; it reduces but does not guarantee determinism (see
+            # judge/calibrate.py's whole reason for existing).
+            temperature=0.0,
         )
         content = response.choices[0].message.content
         if not content:
