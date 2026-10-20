@@ -20,7 +20,7 @@ Like adapters, checks are **plugins**, discoverable via the same `importlib.meta
 | Check | Catches | Status |
 | --- | --- | --- |
 | [Duplicates](duplicates.md) | Exact and near-duplicate chunks | Done |
-| [Stale versions](stale-versions.md) | Superseded document versions still live in the store | Planned — Week 2 |
+| [Stale versions](stale-versions.md) | Superseded document versions still live in the store | Done |
 | [Chunking damage](chunking-damage.md) | Cut tables, orphan headings, broken sentences, oversized/undersized chunks | Planned — Week 2 |
 | [Contradictions](contradictions.md) | Conflicting numbers, dates, money, percentages, durations across sources | Planned — Week 2 |
 
