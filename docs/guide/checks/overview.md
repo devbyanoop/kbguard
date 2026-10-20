@@ -1,6 +1,6 @@
 # Knowledge-base checks: overview
 
-The `Check` Protocol and plugin discovery are implemented and tested. One check (`duplicates`) is built and verified against real data — see the status table below for the rest.
+The `Check` Protocol and plugin discovery are implemented and tested. Three checks (`duplicates`, `stale_versions`, `chunking_damage`) are built and verified against real data — see the status table below for the rest.
 
 ## What a check is
 
@@ -21,11 +21,11 @@ Like adapters, checks are **plugins**, discoverable via the same `importlib.meta
 | --- | --- | --- |
 | [Duplicates](duplicates.md) | Exact and near-duplicate chunks | Done |
 | [Stale versions](stale-versions.md) | Superseded document versions still live in the store | Done |
-| [Chunking damage](chunking-damage.md) | Cut tables, orphan headings, broken sentences, oversized/undersized chunks | Planned — Week 2 |
+| [Chunking damage](chunking-damage.md) | Cut tables, orphan headings, broken sentences, oversized/undersized chunks, encoding noise | Done |
 | [Contradictions](contradictions.md) | Conflicting numbers, dates, money, percentages, durations across sources | Planned — Week 2 |
 
 Dead-content, coverage-gap, and citation checks are explicitly **out of scope for v0.1** and planned for a later release.
 
 ## Finding identity (fingerprints)
 
-Every `Finding` carries a `fingerprint` — a stable hash of the check name, the chunk ids involved, and whatever evidence keys that specific check says define its identity. This is what lets [`kbguard diff`](../diff-and-ci.md) tell new findings apart from ones that already existed, and what `kbguard.ignore.yaml` suppressions key on. `duplicates` uses this today (`identity_keys=["exact"]`/`["near"]`, so the same chunk pair caught both ways — which can't actually happen, see [Duplicates](duplicates.md) — would still get distinct fingerprints rather than colliding).
+Every `Finding` carries a `fingerprint` — a stable hash of the check name, the chunk ids involved, and whatever evidence keys that specific check says define its identity. This is what lets [`kbguard diff`](../diff-and-ci.md) tell new findings apart from ones that already existed, and what `kbguard.ignore.yaml` suppressions key on. `duplicates` uses this today (`identity_keys=["exact"]`/`["near"]`, so the same chunk pair caught both ways — which can't actually happen, see [Duplicates](duplicates.md) — would still get distinct fingerprints rather than colliding). `chunking_damage` keys on its `rule` evidence field (`identity_keys=["rule"]`), so a chunk flagged by two different rules (e.g. both `size` and `orphan_heading`) gets two distinct fingerprints, not one.

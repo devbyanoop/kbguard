@@ -72,6 +72,7 @@ qdrant = "kbguard.adapters.qdrant:QdrantAdapter"
 # registers here the same way, no special-casing.
 duplicates = "kbguard.checks.duplicates:DuplicatesCheck"
 stale_versions = "kbguard.checks.stale_versions:StaleVersionsCheck"
+chunking_damage = "kbguard.checks.chunking_damage:ChunkingDamageCheck"
 
 [project.scripts]
 kbguard = "kbguard.cli:app"

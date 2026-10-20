@@ -24,7 +24,7 @@ import chromadb
 
 _DEFAULT_PATH = Path(__file__).parent / "chroma_data"
 
-# 13-dim one-hot-ish topic basis. Each genuinely distinct topic gets its own
+# 14-dim one-hot-ish topic basis. Each genuinely distinct topic gets its own
 # dimension; dimension 12 is a shared "noise" dimension used ONLY to create
 # controlled partial similarity for the two pairs that are deliberately
 # somewhat alike (return-window v1/v2, warranty a/b) without ever pushing an
@@ -36,7 +36,7 @@ _DEFAULT_PATH = Path(__file__).parent / "chroma_data"
 #   warranty-a      <-> warranty-b:        0.6402  (same topic, different value: well below 0.97)
 #   every other pair:                      < 0.55
 def _vec(**dims: float) -> list[float]:
-    v = [0.0] * 13
+    v = [0.0] * 14
     for key, value in dims.items():
         v[int(key[1:])] = value
     return v
@@ -146,6 +146,14 @@ CHUNKS = [
         "text": "Subscriptions can be cancelled at any time from your account settings page.",
         "embedding": _vec(d8=1),
         "metadata": {},
+    },
+    # --- Chunking damage: encoding noise (stray control characters, a
+    # common artifact of bad PDF text extraction) ---
+    {
+        "id": "encoding-noise-1",
+        "text": "Payment methods include credit card\x00\x00 debit card\x01 and bank transfer\x02\x02 for all purchases.",
+        "embedding": _vec(d13=1),
+        "metadata": {"doc_id": "payment-methods", "title": "Payment Methods"},
     },
     # --- Clean chunks, for contrast (no planted problem) ---
     {

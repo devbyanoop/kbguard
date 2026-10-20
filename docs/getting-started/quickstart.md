@@ -15,7 +15,7 @@ Follow [Installation](installation.md) first (`pip install -e ".[dev,chroma]"` f
 python examples/policy_corpus/seed.py
 ```
 
-This writes a small, local Chroma collection (`examples/policy_corpus/chroma_data/`, gitignored) with 16 chunks — a synthetic company-policy knowledge base with deliberately planted problems (duplicates, a stale policy version, a cut table, a contradicting number, ...). See `examples/policy_corpus/README.md` for exactly what's in it. Re-running `seed.py` is safe — it's a no-op once the collection is already populated.
+This writes a small, local Chroma collection (`examples/policy_corpus/chroma_data/`, gitignored) with 17 chunks — a synthetic company-policy knowledge base with deliberately planted problems (duplicates, a stale policy version, a cut table, a contradicting number, ...). See `examples/policy_corpus/README.md` for exactly what's in it. Re-running `seed.py` is safe — it's a no-op once the collection is already populated.
 
 ## 3. Point kbguard at it
 
@@ -42,7 +42,7 @@ kbguard scan --collection demo --config examples/policy_corpus/kbguard.yaml
 ```
 
 ```text
-Wrote snapshot '2026-10-19T04-18-42_demo': 16 chunks -> .kbguard\snapshots\2026-10-19T04-18-42_demo
+Wrote snapshot '2026-10-20T05-42-22_demo': 17 chunks -> .kbguard\snapshots\2026-10-20T05-42-22_demo
 ```
 
 (Your snapshot id will have today's actual timestamp.) The output lands under `.kbguard/snapshots/<id>/` relative to wherever you ran the command — gitignored, since it contains your actual document text (see [Configuration](../guide/configuration.md)).
@@ -63,7 +63,7 @@ for chunk in reader.chunks():
 print(reader.manifest())
 ```
 
-You should see all 16 chunks, with `source` filled in from each chunk's `doc_id` via `metadata_map` — except `no-source-chunk`, where `source` is `None`, since that chunk has no `doc_id` at all (deliberately — see the corpus README).
+You should see all 17 chunks, with `source` filled in from each chunk's `doc_id` via `metadata_map` — except `no-source-chunk`, where `source` is `None`, since that chunk has no `doc_id` at all (deliberately — see the corpus README).
 
 ## What's next
 
