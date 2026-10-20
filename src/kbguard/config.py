@@ -50,7 +50,15 @@ class EmbeddingsConfig(_StrictModel):
 class DuplicatesCheckConfig(_StrictModel):
     enabled: bool = True
     cosine: float = 0.97
-    minhash_jaccard: float = 0.9
+    # Not 0.9 (the original architecture spec's value) — measured against
+    # the example corpus's real reworded near-duplicate pair before
+    # trusting it: word-set Jaccard (checks/duplicates.py's MinHash scheme)
+    # scored ~0.47 for a genuine paraphrase, with unrelated text topping
+    # out around 0.18. At 0.9, this signal would essentially never fire
+    # for real paraphrased duplicates, since Jaccard similarity this high
+    # only happens for text that's already near-identical word-for-word.
+    # 0.3 sits with real margin on both sides of the measured gap.
+    minhash_jaccard: float = 0.3
     severity: Severity = "warn"
 
 

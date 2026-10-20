@@ -34,7 +34,7 @@ embeddings:
   model: sentence-transformers/all-MiniLM-L6-v2
 
 checks:
-  duplicates: {cosine: 0.97, minhash_jaccard: 0.9}
+  duplicates: {cosine: 0.97, minhash_jaccard: 0.3}
   stale_versions: {enabled: true}
   chunking_damage: {min_tokens: 40, max_tokens: 800, required_metadata: [source]}
   contradictions: {types: [number, date, money, percent, duration]}
@@ -57,8 +57,8 @@ fail_on:
   health_drop: 3
 ```
 
-!!! note "checks, evals, target aren't wired up to anything yet"
-    This page documents the config *schema*, which is implemented and tested. The features that actually *read* `checks`, `judge`, `evals`, and `target` (the checks themselves, the eval runner, the judge client) are still planned — see [Roadmap & status](../project/roadmap.md). Writing these sections today won't error, but nothing consumes them yet.
+!!! note "checks.duplicates is real; the rest of checks, evals, and target aren't wired up yet"
+    `checks.duplicates` is read by a real, tested check ([Duplicates](checks/duplicates.md)) today. `stale_versions`, `chunking_damage`, `contradictions`, `judge`, `evals`, and `target` are still planned — see [Roadmap & status](../project/roadmap.md). Writing those sections today won't error, but nothing consumes them yet. Note also that `kbguard scan` doesn't automatically *run* any check yet (that's Week 2's `cli.py` second pass) — today a check has to be invoked directly, e.g. in a script or test.
 
 ## Reference
 
@@ -87,7 +87,7 @@ A mapping from kbguard's standard `Chunk` fields (`source`, `version`, `updated_
 
 ### `checks`
 
-Each of `duplicates`, `stale_versions`, `chunking_damage`, `contradictions` has its own `enabled: bool = true` and a `severity` override, plus check-specific tuning fields (shown in the full example above) with the defaults from the architecture spec.
+Each of `duplicates`, `stale_versions`, `chunking_damage`, `contradictions` has its own `enabled: bool = true` and a `severity` override, plus check-specific tuning fields (shown in the full example above). Defaults mostly follow the original architecture spec, with one correction made after measuring against real data: `duplicates.minhash_jaccard` is `0.3`, not the spec's original `0.9` — see [Duplicates](checks/duplicates.md) for why.
 
 ### `judge` (optional)
 
