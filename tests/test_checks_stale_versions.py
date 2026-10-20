@@ -152,6 +152,18 @@ def test_updated_at_takes_priority_over_version_string(tmp_path: Path) -> None:
     assert findings[0].evidence["newest_id"] == "b"
 
 
+def test_family_with_three_members_flags_every_older_one_against_the_newest(tmp_path: Path) -> None:
+    a = _chunk("a", title="Return Policy", version="v1", updated_at=datetime(2024, 1, 1, tzinfo=timezone.utc))
+    b = _chunk("b", title="Return Policy", version="v2", updated_at=datetime(2025, 1, 1, tzinfo=timezone.utc))
+    c = _chunk("c", title="Return Policy", version="v3", updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    reader = _snapshot(tmp_path, [a, b, c])
+
+    findings = list(StaleVersionsCheck().run(reader, CheckContext(config=_CONFIG)))
+
+    pairs = {(f.evidence["older_id"], f.evidence["newest_id"]) for f in findings}
+    assert pairs == {("a", "c"), ("b", "c")}  # both older members paired against "c", not just a~b~c chain
+
+
 def test_disabled_check_yields_nothing(tmp_path: Path) -> None:
     old = _chunk("v1", title="Return Policy", version="v1", updated_at=datetime(2024, 1, 1, tzinfo=timezone.utc))
     new = _chunk("v2", title="Return Policy", version="v2", updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
