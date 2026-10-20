@@ -1,6 +1,9 @@
 # Pinecone adapter
 
-`PineconeAdapter` (`pinecone` plugin name) is built and unit-tested against the real `pinecone` package's verified method signatures and response shapes — but not against a live Pinecone index (a managed cloud service with no local/self-hosted way to run it, unlike pgvector/Qdrant's Docker containers). See [Testing](#testing) below for exactly what that does and doesn't cover.
+`PineconeAdapter` (`pinecone` plugin name) is built, unit-tested against a fake client matching the real `pinecone` package's verified shapes, **and** verified end-to-end against a real, live Pinecone index (free "Starter" tier). See [Testing](#testing) below for what each layer covers.
+
+!!! warning "The fake-client tests alone missed a real bug — this is why the live test exists"
+    `collections()` originally called `self._require_client().list_indexes().names` as a plain attribute. It compiled, type-checked, and passed all 11 fake-client unit tests, because the fake was built to the same (wrong) assumption. Running the real adapter against a real Pinecone index immediately raised `TypeError: 'method' object is not iterable` — `IndexList.names` is a **method** on the real client (`names()`), not an attribute. `dir()` lists both the same way, which is exactly how this got written wrong in the first place and how a fake built from `dir()` output, not confirmed call behavior, can still hide a real bug. Fixed in both the adapter and the fake (so the fake can't silently regress to the wrong shape again).
 
 !!! warning "Depend on `pinecone`, not `pinecone-client`"
     The original architecture spec named `pinecone-client>=4.0` as the dependency. That package is **deprecated** — installing it and importing `pinecone` now raises `Exception: The official Pinecone python package has been renamed from pinecone-client to pinecone`, discovered by actually installing it, not assumed from memory. `pyproject.toml`'s `pinecone` extra was fixed to depend on `pinecone>=5.0` before this adapter was built against it.
@@ -25,4 +28,9 @@ Pinecone's client has no single "page through everything with vectors" call — 
 
 ## Testing
 
-Covered by `tests/test_adapters_pinecone.py` (11 tests) using a lightweight fake client that mirrors the real `pinecone` package's verified shapes (`IndexList.names`, `FetchResponse.vectors`, `ScoredVector.{id,score,values,metadata}`, `DescribeIndexStatsResponse.{total_vector_count,namespaces}`) — every method signature and field name was checked against the installed `pinecone` 10.x package by hand before writing the fake, not guessed. What this *doesn't* cover: real network behavior, real auth errors, real rate limits, or any Pinecone-side API drift since. If you use this adapter against a real index and hit something this page doesn't mention, that's expected — please open an issue.
+Two layers:
+
+- **`tests/test_adapters_pinecone.py`** (11 tests): a lightweight fake client mirroring the real `pinecone` package's shapes (`IndexList.names()`, `FetchResponse.vectors`, `ScoredVector.{id,score,values,metadata}`, `DescribeIndexStatsResponse.{total_vector_count,namespaces}`). Fast, no network, no account needed — but as the warning above shows, a fake only catches what it was built correctly to mirror.
+- **`tests/test_adapters_pinecone_live.py`** (5 tests): the real adapter against a real, live Pinecone index — seeds real vectors, exercises `iter_chunks`/`search`/`count`/`collections`/`with_embeddings=False`, cleans up after itself. Needs `PINECONE_API_KEY` + `PINECONE_TEST_INDEX` (dimension 4, metric cosine — the free Starter tier is enough) set via `.env` or the real environment; skips cleanly, not an error, when they aren't set — see [Contributing](../../project/contributing.md).
+
+What even the live tests don't cover: real auth-failure modes, rate limits, or any Pinecone-side API drift after this was written. If you hit something this page doesn't mention, that's expected — please open an issue.

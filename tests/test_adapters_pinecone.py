@@ -55,7 +55,13 @@ class _FakePinecone:
         return self.indexes[name]
 
     def list_indexes(self) -> _Obj:
-        return _Obj(names=list(self.indexes.keys()))
+        # names() is a *method* on the real IndexList, not a plain
+        # attribute — confirmed only after a live test against a real
+        # Pinecone index caught adapters/pinecone.py calling it as one.
+        # This fake originally had the same wrong shape and would never
+        # have caught that bug either; fixed to match the real callable.
+        index_names = list(self.indexes.keys())
+        return _Obj(names=lambda: index_names)
 
 
 def _install_fake_pinecone(monkeypatch: pytest.MonkeyPatch, fake_client: _FakePinecone) -> None:
