@@ -3,7 +3,9 @@ from typing import Any
 
 import chromadb
 from chromadb.api import ClientAPI
+from chromadb.errors import ChromaError
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.models import Chunk
 
 # kbguard always supplies its own embeddings (ingest/embeddings.py — reuse
@@ -28,10 +30,18 @@ class ChromaAdapter:
         # Chroma the fastest adapter to develop and test against (no server,
         # no Docker). Given a `path`, data persists to that local directory
         # between runs instead.
-        if path is not None:
-            self._client = chromadb.PersistentClient(path=str(path))
-        else:
-            self._client = chromadb.EphemeralClient()
+        try:
+            if path is not None:
+                self._client = chromadb.PersistentClient(path=str(path))
+            else:
+                self._client = chromadb.EphemeralClient()
+        except ChromaError as exc:
+            # Local-only (no remote host to misconfigure), but an
+            # unwritable/nonexistent path still fails eagerly right here
+            # (confirmed by hand) -- chromadb.errors.ChromaError is the
+            # real common base, confirmed via the real exception's own
+            # __mro__ before relying on it.
+            raise AdapterConnectionError(f"could not open the Chroma store at {path!r}: {exc}") from exc
 
     def _require_client(self) -> ClientAPI:
         if self._client is None:

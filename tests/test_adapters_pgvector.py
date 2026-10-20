@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.adapters.pgvector import PgVectorAdapter
 
 
@@ -25,6 +26,20 @@ def test_connect_requires_dbname_setting() -> None:
 
     with pytest.raises(ValueError, match="dbname"):
         adapter.connect(user="x")
+
+
+def test_connect_wraps_a_real_connection_failure() -> None:
+    """psycopg.connect() is eager -- a bad host/port raises right here,
+    confirmed by hand (also confirmed by hand: with no connect_timeout at
+    all, a real unresponsive port took 260 real seconds to give up, which
+    is why connect() now always passes one). A small override keeps this
+    test itself fast -- libpq enforces an effective floor of 2s/attempt
+    regardless of a smaller requested value, and "localhost" resolves to
+    both ::1 and 127.0.0.1, so the real worst case here is ~4s, not 0."""
+    adapter = PgVectorAdapter()
+
+    with pytest.raises(AdapterConnectionError, match="could not connect to pgvector"):
+        adapter.connect(host="localhost", port=1, user="x", dbname="x", password="x", connect_timeout=2)
 
 
 def test_connect_rejects_unsafe_column_name(pgvector_connect_settings: dict[str, Any]) -> None:

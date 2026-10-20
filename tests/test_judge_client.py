@@ -97,6 +97,36 @@ def test_ask_json_raises_on_empty_response(tmp_path: Path, monkeypatch: pytest.M
         client.ask_json("prompt", schema_hint="hint")
 
 
+def test_ask_json_wraps_a_real_provider_failure_into_judge_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """litellm maps every provider's own failure (bad/missing key, rate
+    limit, timeout, connection refused) onto the real `openai.OpenAIError`
+    hierarchy -- confirmed by hand via each real exception class's
+    __mro__ before relying on it in judge/client.py. Without that wrap, a
+    bad API key surfaces as a full raw traceback through the CLI instead
+    of a clean message (confirmed by hand against a real Anthropic call
+    with no key configured)."""
+    import openai
+
+    def fake_completion(**kwargs: object) -> None:
+        # The real AuthenticationError's constructor needs a real
+        # httpx.Response (confirmed by hand -- it reads .request
+        # internally), more than this test needs to prove. The plain
+        # shared base is real and sufficient: production code catches
+        # openai.OpenAIError generically, not any specific subclass.
+        raise openai.OpenAIError("Missing API Key")
+
+    fake_module = types.ModuleType("litellm")
+    fake_module.completion = fake_completion  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "litellm", fake_module)
+
+    client = JudgeClient(model="gpt-4o-mini", cache=_cache(tmp_path))
+
+    with pytest.raises(JudgeError, match="call failed"):
+        client.ask_json("prompt", schema_hint="hint")
+
+
 def test_ask_json_repeat_call_hits_cache_and_does_not_call_litellm_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

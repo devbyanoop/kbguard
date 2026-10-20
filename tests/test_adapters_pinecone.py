@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.adapters.pinecone import PineconeAdapter
 
 
@@ -46,15 +47,26 @@ class _FakeIndex:
         return _Obj(matches=matches)
 
 
+class _FakePineconeException(Exception):
+    """Stands in for the real `pinecone.PineconeException` -- adapters/
+    pinecone.py imports the real one by name (`from pinecone import
+    Pinecone, PineconeException`), so a fake pinecone module needs this
+    attribute too, or that import itself fails with a plain
+    ImportError/AttributeError, not the exception path being tested."""
+
+
 class _FakePinecone:
     def __init__(self, **kwargs: Any) -> None:
         self.init_kwargs = kwargs
         self.indexes: dict[str, _FakeIndex] = {}
+        self.list_indexes_error: Exception | None = None
 
     def Index(self, name: str) -> _FakeIndex:  # matches real pinecone.Pinecone.Index's casing
         return self.indexes[name]
 
     def list_indexes(self) -> _Obj:
+        if self.list_indexes_error is not None:
+            raise self.list_indexes_error
         # names() is a *method* on the real IndexList, not a plain
         # attribute — confirmed only after a live test against a real
         # Pinecone index caught adapters/pinecone.py calling it as one.
@@ -67,6 +79,7 @@ class _FakePinecone:
 def _install_fake_pinecone(monkeypatch: pytest.MonkeyPatch, fake_client: _FakePinecone) -> None:
     fake_module = types.ModuleType("pinecone")
     fake_module.Pinecone = lambda **kwargs: fake_client  # type: ignore[attr-defined]
+    fake_module.PineconeException = _FakePineconeException  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "pinecone", fake_module)
 
 
@@ -213,6 +226,23 @@ def test_namespace_setting_scopes_count_and_fetch_calls(monkeypatch: pytest.Monk
     assert index.query_calls[0]["namespace"] == "articles-en"
 
 
+def test_connect_wraps_a_bad_key_into_a_clean_adapter_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pinecone(api_key=...) never raises for a bad key by itself -- the
+    real failure only surfaces on the first real call, confirmed by hand
+    against the real API (a real 401 UnauthorizedError). connect() proves
+    this eagerly via list_indexes() specifically so a bad/invalid key
+    fails clearly right here instead of as a raw library traceback the
+    first time any other method is used."""
+    client = _FakePinecone()
+    client.list_indexes_error = _FakePineconeException("[401 UNAUTHENTICATED] Invalid API key")
+    _install_fake_pinecone(monkeypatch, client)
+
+    adapter = PineconeAdapter()
+
+    with pytest.raises(AdapterConnectionError, match="could not connect to Pinecone.*Invalid API key"):
+        adapter.connect(api_key="fake-key")
+
+
 def test_missing_pinecone_library_raises_clear_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "pinecone", None)
 
@@ -232,6 +262,7 @@ def test_connect_resolves_api_key_from_env(monkeypatch: pytest.MonkeyPatch) -> N
 
     fake_module = types.ModuleType("pinecone")
     fake_module.Pinecone = fake_pinecone_ctor  # type: ignore[attr-defined]
+    fake_module.PineconeException = _FakePineconeException  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "pinecone", fake_module)
 
     adapter = PineconeAdapter()
