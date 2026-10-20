@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from kbguard.ingest.snapshot import SnapshotError, SnapshotReader, SnapshotWriter
+from kbguard.ingest.snapshot import SnapshotError, SnapshotReader, SnapshotWriter, append_findings
 from kbguard.models import Chunk, Finding
 
 
@@ -179,6 +179,73 @@ def test_findings_filtered_by_check(tmp_path: Path) -> None:
     only_dup = list(reader.findings(check="duplicates"))
     assert len(only_dup) == 1
     assert only_dup[0].message == "m1"
+
+
+def test_append_findings_writes_into_an_already_closed_snapshot(tmp_path: Path) -> None:
+    writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="m")
+    writer.write_chunk(_chunk("a", [1.0]))
+    writer.close()  # no findings known yet -- the whole point of append_findings
+
+    append_findings(
+        tmp_path / "snap",
+        [Finding(check="duplicates", severity="warn", chunk_ids=["a"], message="m1", fingerprint="fp1")],
+    )
+
+    reader = SnapshotReader(tmp_path / "snap")
+    findings = list(reader.findings())
+    assert len(findings) == 1
+    assert findings[0].message == "m1"
+
+
+def test_append_findings_updates_manifest_finding_count(tmp_path: Path) -> None:
+    writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="m")
+    writer.write_chunk(_chunk("a", [1.0]))
+    writer.close()
+
+    append_findings(
+        tmp_path / "snap",
+        [
+            Finding(check="duplicates", severity="warn", chunk_ids=["a"], message="m1", fingerprint="fp1"),
+            Finding(check="chunking_damage", severity="warn", chunk_ids=["a"], message="m2", fingerprint="fp2"),
+        ],
+    )
+
+    manifest = SnapshotReader(tmp_path / "snap").manifest()
+    assert manifest["finding_count"] == 2
+
+
+def test_append_findings_can_be_called_more_than_once(tmp_path: Path) -> None:
+    writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="m")
+    writer.write_chunk(_chunk("a", [1.0]))
+    writer.close()
+
+    append_findings(
+        tmp_path / "snap", [Finding(check="duplicates", severity="warn", chunk_ids=["a"], message="m1", fingerprint="fp1")]
+    )
+    append_findings(
+        tmp_path / "snap",
+        [Finding(check="chunking_damage", severity="warn", chunk_ids=["a"], message="m2", fingerprint="fp2")],
+    )
+
+    reader = SnapshotReader(tmp_path / "snap")
+    assert len(list(reader.findings())) == 2
+    assert reader.manifest()["finding_count"] == 2
+
+
+def test_append_findings_duplicate_fingerprint_across_calls_raises(tmp_path: Path) -> None:
+    writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="m")
+    writer.write_chunk(_chunk("a", [1.0]))
+    writer.close()
+
+    append_findings(
+        tmp_path / "snap", [Finding(check="duplicates", severity="warn", chunk_ids=["a"], message="m1", fingerprint="dup")]
+    )
+
+    with pytest.raises(SnapshotError, match="duplicate finding fingerprint"):
+        append_findings(
+            tmp_path / "snap",
+            [Finding(check="chunking_damage", severity="warn", chunk_ids=["a"], message="m2", fingerprint="dup")],
+        )
 
 
 def test_empty_snapshot_round_trips(tmp_path: Path) -> None:

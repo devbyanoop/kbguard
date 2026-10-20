@@ -17,6 +17,7 @@ _NO_EMBEDDING_FUNCTION = None
 
 class ChromaAdapter:
     name = "chroma"
+    iteration_mode = "full"
 
     def __init__(self) -> None:
         self._client: ClientAPI | None = None
