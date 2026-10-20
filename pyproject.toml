@@ -71,6 +71,7 @@ qdrant = "kbguard.adapters.qdrant:QdrantAdapter"
 # Same registration mechanism as adapters — a third-party check package
 # registers here the same way, no special-casing.
 duplicates = "kbguard.checks.duplicates:DuplicatesCheck"
+stale_versions = "kbguard.checks.stale_versions:StaleVersionsCheck"
 
 [project.scripts]
 kbguard = "kbguard.cli:app"

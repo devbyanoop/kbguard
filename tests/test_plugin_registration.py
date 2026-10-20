@@ -2,6 +2,7 @@ from kbguard.adapters.chroma import ChromaAdapter
 from kbguard.adapters.pgvector import PgVectorAdapter
 from kbguard.adapters.qdrant import QdrantAdapter
 from kbguard.checks.duplicates import DuplicatesCheck
+from kbguard.checks.stale_versions import StaleVersionsCheck
 from kbguard.registry import load_adapter, load_check
 
 # Unlike test_registry.py (which exercises registry.py's own lookup logic
@@ -26,3 +27,7 @@ def test_qdrant_adapter_is_registered() -> None:
 
 def test_duplicates_check_is_registered() -> None:
     assert load_check("duplicates") is DuplicatesCheck
+
+
+def test_stale_versions_check_is_registered() -> None:
+    assert load_check("stale_versions") is StaleVersionsCheck
