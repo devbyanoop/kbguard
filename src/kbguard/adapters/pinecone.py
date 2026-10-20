@@ -56,7 +56,12 @@ class PineconeAdapter:
         return self._indexes[collection]
 
     def collections(self) -> list[str]:
-        return list(self._require_client().list_indexes().names)
+        # .names() is a *method* on the real installed client (confirmed
+        # by hand after a live test caught this: dir() lists "names" the
+        # same way whether it's a plain attribute or a callable, which is
+        # exactly how this got written wrong the first time, against a
+        # fake client that never would have caught it either).
+        return self._require_client().list_indexes().names()  # type: ignore[no-any-return]
 
     def count(self, collection: str) -> int:
         stats = self._index_for(collection).describe_index_stats()
