@@ -201,6 +201,26 @@ class SnapshotReader:
 
         return [float(x) for x in self._vectors[row]]
 
+    def vectors(self) -> Iterator[tuple[str, list[float]]]:
+        """Bulk access to every chunk's vector, id-aligned — for checks
+        (e.g. duplicates) that need to build an index over all of them at
+        once rather than looking each one up individually. Deferred from
+        when SnapshotWriter/SnapshotReader were first built (Week 1); built
+        now that checks/duplicates.py is the real caller that needs it,
+        rather than speculatively.
+        """
+        conn = sqlite3.connect(self._path / "index.sqlite")
+        try:
+            rows = conn.execute("SELECT id, row FROM chunks_index ORDER BY row").fetchall()
+        finally:
+            conn.close()
+
+        if self._vectors is None:
+            self._vectors = np.load(self._path / "vectors.npy")
+
+        for chunk_id, row in rows:
+            yield chunk_id, [float(x) for x in self._vectors[row]]
+
     def findings(self, check: str | None = None) -> Iterator[Finding]:
         with (self._path / "findings.jsonl").open(encoding="utf-8") as f:
             for line in f:

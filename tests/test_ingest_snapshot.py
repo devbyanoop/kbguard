@@ -70,6 +70,21 @@ def test_vector_alignment_not_coincidental(tmp_path: Path) -> None:
     assert reader.vector("beta") == pytest.approx([7.0, 8.0])
 
 
+def test_bulk_vectors_matches_individual_lookups(tmp_path: Path) -> None:
+    writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="fake")
+    writer.write_chunk(_chunk("alpha", [100.0, 101.0]))
+    writer.write_chunk(_chunk("beta", [7.0, 8.0]))
+    writer.write_chunk(_chunk("gamma", [-3.0, -4.0]))
+    writer.close()
+
+    reader = SnapshotReader(tmp_path / "snap")
+    bulk = dict(reader.vectors())
+
+    assert set(bulk) == {"alpha", "beta", "gamma"}
+    assert bulk["alpha"] == pytest.approx([100.0, 101.0])
+    assert bulk["gamma"] == pytest.approx([-3.0, -4.0])
+
+
 def test_vector_unknown_chunk_id_raises(tmp_path: Path) -> None:
     writer = SnapshotWriter(tmp_path / "snap", collection="c", adapter_name="chroma", embedding_model="fake")
     writer.write_chunk(_chunk("a", [1.0]))
