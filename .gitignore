@@ -35,3 +35,14 @@ site/
 
 # Generated demo data — reproducible via examples/policy_corpus/seed.py
 examples/policy_corpus/chroma_data/
+
+# Generated demo data -- reproducible via examples/eval_demo/seed.py
+examples/eval_demo/chroma_data/
+
+# Generated golden set -- judge-generated content from a real LLM call,
+# reproducible via `kbguard golden generate`, not stable data. Named
+# individually, not as a whole-directory pattern: a directory-level
+# ignore (trailing slash) stops git from even looking inside it, so a
+# `!` exception for calibration.jsonl (hand-written, kept) wouldn't work.
+examples/eval_demo/evals/golden_review.csv
+examples/eval_demo/evals/golden.jsonl

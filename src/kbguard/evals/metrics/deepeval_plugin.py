@@ -13,54 +13,56 @@ def _cause(passed: bool) -> Literal["generation", "none"]:
     return "none" if passed else "generation"
 
 
-class _LiteLLMDeepEvalModel:
-    """Wraps kbguard's one pinned model string into deepeval's
-    DeepEvalBaseLLM interface via litellm — much simpler than ragas's
-    wrapper: DeepEvalBaseLLM.generate()/a_generate() just need plain text
-    in, plain text out (confirmed against the installed deepeval 4.x
+def _build_litellm_deepeval_model(model: str) -> Any:
+    """Builds a real `DeepEvalBaseLLM` instance wrapping kbguard's one
+    pinned model string via litellm — much simpler than ragas's wrapper:
+    DeepEvalBaseLLM.generate()/a_generate() just need plain text in,
+    plain text out (confirmed against the installed deepeval 4.x
     package's actual abstract methods), no tool-calling/structured-output
-    requirement the way ragas's instructor-based LLM needed. Verified for
-    real with litellm's mock_response (a plain JSON string, no tool call)
-    — unlike ragas_plugin.py's LLM wrapper, this one genuinely is unit-
-    tested end to end, not just verified by hand up to a credentials
-    boundary.
+    requirement the way ragas's instructor-based LLM needed.
+
+    This used to be a composition wrapper class (`__getattr__`
+    delegating to an internal `_Impl`), which passed every unit test
+    (those construct `_LiteLLMDeepEvalModel` directly and call
+    `.generate()` on it, which `__getattr__` happily forwards) but broke
+    for real: deepeval's `FaithfulnessMetric.__init__` does its own
+    `isinstance(model, DeepEvalBaseLLM)` check on whatever object it's
+    handed, and a composition wrapper's own type is never actually a
+    `DeepEvalBaseLLM` subclass no matter what `__getattr__` forwards —
+    confirmed by hand: `TypeError: Unsupported type for model: <class
+    '..._LiteLLMDeepEvalModel'>` on a real `FaithfulnessMetric(...)`
+    construction. Returning the dynamic subclass instance directly,
+    instead of wrapping it, is what actually satisfies that check.
     """
+    from deepeval.models.base_model import DeepEvalBaseLLM
 
-    def __init__(self, model: str) -> None:
-        from deepeval.models.base_model import DeepEvalBaseLLM
+    model_name = model
 
-        model_name = model
+    class _Impl(DeepEvalBaseLLM):  # type: ignore[misc]  # deepeval.* is follow_imports="skip", so this resolves to Any
+        def __init__(self) -> None:
+            super().__init__(model=model_name)
 
-        class _Impl(DeepEvalBaseLLM):  # type: ignore[misc]  # deepeval.* is follow_imports="skip", so this resolves to Any
-            def __init__(self) -> None:
-                super().__init__(model=model_name)
+        def load_model(self) -> "_Impl":
+            return self
 
-            def load_model(self) -> "_Impl":
-                return self
+        def generate(self, prompt: str, *args: Any, **kwargs: Any) -> str:
+            import litellm
 
-            def generate(self, prompt: str, *args: Any, **kwargs: Any) -> str:
-                import litellm
+            response = litellm.completion(model=model_name, messages=[{"role": "user", "content": prompt}])
+            content: str = response.choices[0].message.content
+            return content
 
-                response = litellm.completion(model=model_name, messages=[{"role": "user", "content": prompt}])
-                content: str = response.choices[0].message.content
-                return content
+        async def a_generate(self, prompt: str, *args: Any, **kwargs: Any) -> str:
+            import litellm
 
-            async def a_generate(self, prompt: str, *args: Any, **kwargs: Any) -> str:
-                import litellm
+            response = await litellm.acompletion(model=model_name, messages=[{"role": "user", "content": prompt}])
+            content: str = response.choices[0].message.content
+            return content
 
-                response = await litellm.acompletion(
-                    model=model_name, messages=[{"role": "user", "content": prompt}]
-                )
-                content: str = response.choices[0].message.content
-                return content
+        def get_model_name(self, *args: Any, **kwargs: Any) -> str:
+            return model_name
 
-            def get_model_name(self, *args: Any, **kwargs: Any) -> str:
-                return model_name
-
-        self._impl = _Impl()
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._impl, name)
+    return _Impl()
 
 
 def _build_test_case(question: str, answer: str, contexts: list[str], reference: str | None) -> Any:
@@ -92,7 +94,7 @@ class DeepevalFaithfulness:
         if self._built_for_model != judge.model:
             from deepeval.metrics import FaithfulnessMetric
 
-            self._metric = FaithfulnessMetric(model=_LiteLLMDeepEvalModel(judge.model), async_mode=False)
+            self._metric = FaithfulnessMetric(model=_build_litellm_deepeval_model(judge.model), async_mode=False)
             self._built_for_model = judge.model
         return self._metric
 
@@ -116,7 +118,7 @@ class DeepevalAnswerRelevancy:
         if self._built_for_model != judge.model:
             from deepeval.metrics import AnswerRelevancyMetric
 
-            self._metric = AnswerRelevancyMetric(model=_LiteLLMDeepEvalModel(judge.model), async_mode=False)
+            self._metric = AnswerRelevancyMetric(model=_build_litellm_deepeval_model(judge.model), async_mode=False)
             self._built_for_model = judge.model
         return self._metric
 
@@ -140,7 +142,7 @@ class DeepevalContextualPrecision:
         if self._built_for_model != judge.model:
             from deepeval.metrics import ContextualPrecisionMetric
 
-            self._metric = ContextualPrecisionMetric(model=_LiteLLMDeepEvalModel(judge.model), async_mode=False)
+            self._metric = ContextualPrecisionMetric(model=_build_litellm_deepeval_model(judge.model), async_mode=False)
             self._built_for_model = judge.model
         return self._metric
 
@@ -171,7 +173,7 @@ class DeepevalContextualRecall:
         if self._built_for_model != judge.model:
             from deepeval.metrics import ContextualRecallMetric
 
-            self._metric = ContextualRecallMetric(model=_LiteLLMDeepEvalModel(judge.model), async_mode=False)
+            self._metric = ContextualRecallMetric(model=_build_litellm_deepeval_model(judge.model), async_mode=False)
             self._built_for_model = judge.model
         return self._metric
 
