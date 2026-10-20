@@ -384,9 +384,14 @@ def eval_command(
                 for metric in metrics:
                     try:
                         result = metric.score(row.question, answer, contexts, row.reference_answer, judge)
-                    except ValueError as exc:
-                        # e.g. context_recall on a golden row with no reference_answer
-                        # -- a config/data mismatch for this one row, not a crash.
+                    except Exception as exc:  # noqa: BLE001 -- deliberately broad: ragas/deepeval/litellm
+                        # each raise their own library-specific exceptions for real-world judge-call
+                        # failures (rate limits, timeouts, auth errors), not just ValueError (e.g.
+                        # context_recall on a golden row with no reference_answer) -- confirmed by
+                        # hand: a real Groq 429 during a real eval run previously propagated past a
+                        # narrower `except ValueError` and crashed the whole eval, discarding every
+                        # already-computed result, which contradicts this command's own documented
+                        # "one broken question never aborts the rest" contract.
                         eval_results.append(
                             EvalResult(
                                 question_id=row.id, metric=metric.name, value=0.0, passed=False,

@@ -1,0 +1,23 @@
+store:
+  adapter: chroma
+  collection: eval_demo
+  settings:
+    path: examples/eval_demo/chroma_data
+
+metadata_map:
+  source: doc_id
+
+judge:
+  model: groq/qwen/qwen3.8-27b
+
+target:
+  type: python
+  callable: "examples.eval_demo.toy_target:answer"
+
+evals:
+  golden: examples/eval_demo/evals/golden.jsonl
+  k: [1, 2]
+  metrics: ["deepeval.faithfulness"]
+
+fail_on:
+  health_drop: 2

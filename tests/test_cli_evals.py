@@ -1,4 +1,6 @@
 import json
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -251,6 +253,62 @@ def test_eval_with_stale_calibration_model_mismatch_fails_cleanly(tmp_path: Path
 
     assert result.exit_code == 1
     assert "old-model" in result.output or "new-model" in result.output
+
+
+def test_eval_metric_scoring_failure_is_recorded_not_a_crash(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A real metric.score() call can fail for many reasons beyond
+    ValueError -- confirmed by hand with a real Groq 429 rate limit
+    during a real `kbguard eval` run, which propagated past the previous
+    `except ValueError` and crashed the whole run, discarding every
+    already-computed result. `eval`'s own docstring promises one broken
+    question never aborts the rest; this locks that promise in for
+    metric-scoring failures specifically (the RagTargetError branch
+    above already covers target-call failures)."""
+    chroma_path = tmp_path / "chroma_data"
+    _seed_chroma_collection(chroma_path)
+    config_path = _write_config(
+        tmp_path, chroma_path,
+        "evals:\n  golden: evals/golden.jsonl\n  metrics: [ragas.faithfulness]\n"
+        "judge:\n  model: fake-model\n"
+        "target:\n  type: python\n  callable: fake_rag:answer\n",
+    )
+    monkeypatch.chdir(tmp_path)
+    _scan(tmp_path, config_path)
+    _fake_embedder_matching_test_fixtures(monkeypatch)
+
+    golden_path = tmp_path / "evals" / "golden.jsonl"
+    golden_path.parent.mkdir(parents=True)
+    golden_path.write_text('{"id": "g1", "question": "q", "expected_chunk_ids": ["a"], "reference_answer": null}\n')
+
+    calibration_path = tmp_path / ".kbguard" / "calibration.json"
+    calibration_path.parent.mkdir(parents=True, exist_ok=True)
+    calibration_path.write_text(
+        json.dumps(
+            {"model": "fake-model", "agreement": 1.0, "kappa": 1.0, "n": 5, "created_at": "2026-01-01T00:00:00+00:00"}
+        )
+    )
+
+    fake_rag_module = types.ModuleType("fake_rag")
+    fake_rag_module.answer = lambda q: {"answer": "an answer", "contexts": ["ctx"]}  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "fake_rag", fake_rag_module)
+
+    class _ExplodingMetric:
+        name = "faithfulness"
+
+        def score(self, question: str, answer: str, contexts: list[str], reference: str | None, judge: Any) -> Any:
+            raise RuntimeError("simulated rate limit from the real provider")
+
+    monkeypatch.setattr("kbguard.cli._load_metric_plugin", lambda name, embedder: _ExplodingMetric())
+
+    result = runner.invoke(app, ["eval", "--collection", "policies", "--config", str(config_path)])
+
+    assert result.exit_code == 0, result.output
+    snapshot_dir = next((tmp_path / ".kbguard" / "snapshots").iterdir())
+    results = json.loads((snapshot_dir / "results.json").read_text())
+    faithfulness_results = [r for r in results["eval_results"] if r["metric"] == "faithfulness"]
+    assert len(faithfulness_results) == 1
+    assert faithfulness_results[0]["passed"] is False
+    assert "simulated rate limit" in faithfulness_results[0]["details"]["error"]
 
 
 # --- kbguard diff ---

@@ -1,5 +1,7 @@
 import importlib
+import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -49,6 +51,21 @@ class RagTarget:
         module_path, sep, func_name = target.rpartition(":")
         if not sep:
             raise RagTargetError(f"target.callable must be 'module:function', got {target!r}")
+
+        # `kbguard eval` is normally run via the installed `kbguard` console
+        # script, not `python -m kbguard` or `python script.py` -- and
+        # unlike those two, a console-script launcher does NOT put the
+        # invoking shell's cwd on sys.path (confirmed by hand: the exact
+        # same import succeeds under `python -c "..."` from the repo root,
+        # then fails with "No module named ..." under the installed
+        # kbguard.exe launcher run from the same directory). target.callable
+        # is meant to point at a client's own project-local module, which
+        # is almost never pip-installed, so cwd has to be importable here
+        # the same way uvicorn's CLI does this for its own `module:app`.
+        cwd = str(Path.cwd())
+        if cwd not in sys.path:
+            sys.path.insert(0, cwd)
+
         try:
             module = importlib.import_module(module_path)
             return getattr(module, func_name)  # type: ignore[no-any-return]
