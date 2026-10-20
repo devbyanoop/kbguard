@@ -8,6 +8,9 @@
 !!! warning "Depend on `pinecone`, not `pinecone-client`"
     The original architecture spec named `pinecone-client>=4.0` as the dependency. That package is **deprecated** — installing it and importing `pinecone` now raises `Exception: The official Pinecone python package has been renamed from pinecone-client to pinecone`, discovered by actually installing it, not assumed from memory. `pyproject.toml`'s `pinecone` extra was fixed to depend on `pinecone>=5.0` before this adapter was built against it.
 
+!!! warning "Every call carries an explicit timeout — found the hard way"
+    A real live-index test run hung indefinitely during this project's own development, after many repeated test runs against the same free-tier index in one session (almost certainly rate-limiting, not a code bug). The cause: none of `collections()`/`count()`/`iter_chunks()`/`search()` ever passed a `timeout` to the underlying `pinecone` client calls, which default to `timeout=None` — no timeout at all, confirmed from the real client's own method signatures. A throttled or stalled connection could block forever rather than failing cleanly. Fixed with a `timeout` setting (default 30 seconds) passed to every call that accepts one. `Pinecone.list_indexes()` (used by `collections()`) has no timeout parameter at all in the real client — a gap in the client itself, not something this adapter can work around.
+
 ## Collection and namespace mapping
 
 A Pinecone *index* is this adapter's "collection" — the thing `collections()`/`count()`/`iter_chunks()`/`search()` all take by name, the same role a Chroma collection or a pgvector table plays elsewhere. A Pinecone *namespace* (a further subdivision within one index, with no equivalent in the other three stores) is an adapter-specific setting:
@@ -20,6 +23,7 @@ store:
     api_key_env: PINECONE_API_KEY
     namespace: articles-en      # optional, defaults to Pinecone's default namespace
     text_field: text            # optional -- Pinecone has no distinct text storage
+    timeout: 30.0               # optional, this is the default -- per-call timeout in seconds
 ```
 
 ## Iteration: list, then fetch

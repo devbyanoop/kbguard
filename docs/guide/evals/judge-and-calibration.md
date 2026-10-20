@@ -1,7 +1,7 @@
 # Judge & calibration
 
-!!! warning "judge/client.py is done; judge/calibrate.py is Planned — Week 3"
-    `JudgeClient`/`JudgeCache` below are implemented and tested. Calibration (`kbguard calibrate`, `kbguard eval`'s `min_agreement` gate) is not built yet.
+!!! note "Judge, calibration, and the eval gate are all built"
+    `JudgeClient`/`JudgeCache`, `judge/calibrate.py`, `kbguard calibrate`, and `kbguard eval`'s `min_agreement` gate are all implemented and tested.
 
 ## Why calibration exists
 
@@ -25,9 +25,26 @@ class JudgeClient:
 !!! note "The cache is scoped to one snapshot, not across separate scans"
     Each `kbguard scan` run writes a new, differently-named snapshot directory (see `cli.py`) — so a second scan always starts with a cold judge cache; it does **not** make re-scanning unchanged data free of new LLM calls. What it does buy: running checks, `report`, or `diff` more than once against the *same* already-written snapshot never re-pays for a judge call it already made — e.g. iterating on a report template, or re-running `contradictions` after tuning an unrelated threshold, costs zero additional judge calls. This is narrower than the architecture spec's section 10 wording ("cached ... in the snapshot") might suggest at a glance, and is called out explicitly here rather than left implied.
 
-## Calibration (planned — Week 3)
+## Calibration
 
-- `kbguard calibrate` scores `evals/calibration.jsonl` (20–50 human-labeled examples) and reports agreement and **Cohen's kappa** (agreement corrected for chance — plain percent-agreement overstates reliability when one answer is common). The result is cached to `.kbguard/calibration.json` with the judge model id and a timestamp.
-- **The gate:** `kbguard eval` reads that cache and refuses to proceed (non-zero exit, clear error message) if agreement is below `min_agreement`, or if the cache is missing or was written against a different judge model than the one currently pinned.
+```bash
+kbguard calibrate --labels evals/calibration.jsonl
+```
 
-This page will include real calibration numbers from a worked example once `judge/calibrate.py` is built and tested.
+Each labeled row is deliberately generic — not tied to the contradictions check's own `{"conflict": bool, ...}` schema, since the judge contract is shared by contradiction confirmation and answer metrics alike:
+
+```json
+{"prompt": "...", "schema_hint": "...", "key": "conflict", "human_label": true}
+```
+
+`calibrate(labels_path, judge, out_path)` replays `judge.ask_json(prompt, schema_hint)` for every row, reads the decision out of whichever JSON key `"key"` names, and compares it against `human_label`. It reports:
+
+- **Agreement** — the plain fraction where judge and human agree.
+- **Cohen's kappa** — agreement corrected for chance, via `sklearn.metrics.cohen_kappa_score` (a library implementation, not hand-rolled — exactly the kind of statistic worth trusting to a library). Verified by hand: identical label lists score 1.0; a judge that disagrees with every human label scores 0.0.
+
+Both are written to `.kbguard/calibration.json` with the judge's model id and a timestamp — `calibrate` is the only thing that writes this file; `eval` only ever reads it.
+
+!!! note "Undefined kappa never becomes NaN"
+    When every label (human and judge) happens to be identical, Cohen's kappa is mathematically undefined (the chance-agreement term hits 1.0, giving a 0/0). Confirmed by hand against `sklearn` directly: its default behavior returns `NaN`. `calibrate` passes `replace_undefined_by=0.0` explicitly, so a degenerate all-one-label calibration set reports 0.0 ("no measurable agreement beyond chance"), never a `NaN` silently flowing into `calibration.json`.
+
+**The gate:** `kbguard eval` refuses to run any answer-quality metric (non-zero exit, clear error message) if `.kbguard/calibration.json` is missing, was written for a different judge model than the one currently pinned, or reports agreement below `judge.min_agreement`. Retrieval metrics never need this gate — only the answer-quality metrics that actually call the judge do.

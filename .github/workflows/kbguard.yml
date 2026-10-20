@@ -1,0 +1,75 @@
+name: kbguard CI
+
+# This workflow tests kbguard's OWN source — unit tests, contract tests
+# against real pgvector/Qdrant/Chroma backends, lint, and strict types.
+# It is NOT the CI template a client runs kbguard against their own
+# knowledge base with — that one lives at
+# examples/ci/kbguard-client-template.yml, kept clearly separate so the
+# two "same filename pattern, different job" workflows never get
+# conflated (spec section 12's design note).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: kbguard
+          POSTGRES_PASSWORD: kbguard
+          POSTGRES_DB: kbguard_test
+        ports:
+          # Host port matches this repo's own docker-compose.yml and the
+          # test suite's default (KBGUARD_TEST_PG_PORT=5434) exactly, so
+          # no extra env vars are needed just to run in CI.
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      qdrant:
+        image: qdrant/qdrant
+        ports:
+          - 6333:6333
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install kbguard with every extra the test suite needs
+        run: pip install -e ".[all]"
+
+      - name: ruff
+        run: ruff check src tests contract_tests examples conftest.py
+
+      - name: mypy --strict
+        run: mypy src/kbguard
+
+      - name: pytest (unit + contract tests, real pgvector/Qdrant/Chroma)
+        run: pytest -q
+        env:
+          # Pinecone's live test (tests/test_adapters_pinecone_live.py)
+          # skips cleanly without these — no account needed for CI to
+          # pass; set them as repo secrets only if you want that
+          # coverage running here too.
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_TEST_INDEX: ${{ secrets.PINECONE_TEST_INDEX }}
+
+      - name: mkdocs build --strict
+        run: |
+          pip install -e ".[docs]"
+          mkdocs build --strict

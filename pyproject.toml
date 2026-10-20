@@ -37,7 +37,13 @@ qdrant = ["qdrant-client>=1.9"]
 pinecone = ["pinecone>=5.0"]
 langchain = ["langchain-core>=0.2"]
 llamaindex = ["llama-index-core>=0.10"]
-ragas = ["ragas>=0.1"]
+# langchain-community pinned below 0.4: ragas's own metadata doesn't
+# constrain it at all, and pip resolving the latest (0.4.x) breaks ragas
+# outright -- ragas.llms.base imports langchain_community.chat_models
+# .vertexai.ChatVertexAI, a module that no longer exists there, making a
+# fresh `pip install ragas` literally unimportable. Confirmed by hand,
+# not assumed; 0.3.31 (the newest pre-0.4 release) still has it.
+ragas = ["ragas>=0.1", "langchain-community<0.4"]
 deepeval = ["deepeval>=1.0"]
 litellm = ["litellm>=1.40"]
 sentence-transformers = ["sentence-transformers>=2.7"]
@@ -125,6 +131,14 @@ packages = ["kbguard"]
 # tells mypy to never dive into these modules' actual source, regardless of
 # installation state.
 [[tool.mypy.overrides]]
-module = ["sentence_transformers.*", "litellm.*", "datasketch.*"]
+module = ["sentence_transformers.*", "litellm.*", "datasketch.*", "deepeval.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
+
+# sklearn ships no py.typed marker and no inline types at all (confirmed
+# by hand), but unlike the extras above it's neither huge enough to
+# crash mypy nor imported anywhere performance-sensitive — plain
+# ignore_missing_imports is enough, no need for follow_imports = "skip".
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
+ignore_missing_imports = true

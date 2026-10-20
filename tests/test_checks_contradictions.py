@@ -16,6 +16,7 @@ class _FakeJudge:
     def __init__(self, conflict: bool = True) -> None:
         self._conflict = conflict
         self.calls: list[tuple[str, str]] = []
+        self.model = "fake-model"  # JudgeLike now requires this (ragas/deepeval plugins read it)
 
     def ask_json(self, prompt: str, schema_hint: str) -> dict[str, Any]:
         self.calls.append((prompt, schema_hint))

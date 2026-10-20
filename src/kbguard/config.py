@@ -131,6 +131,12 @@ class TargetConfig(_StrictModel):
     method: str = "POST"
     answer_path: str = "$.answer"
     contexts_path: str = "$.contexts"
+    # Only applies to type == "http" — a plain Python function call has no
+    # cross-platform-safe wall-clock timeout mechanism without extra
+    # threading complexity (signal-based timeouts don't work on Windows),
+    # a deliberate v0.1 scope decision, not an oversight: a client
+    # callable that can hang needs its own internal timeout.
+    timeout: float = 30.0
 
     @model_validator(mode="after")
     def _check_fields_match_type(self) -> "TargetConfig":

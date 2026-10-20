@@ -1,6 +1,7 @@
 import hashlib
 import json
 import random
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,29 @@ _SAMPLE_SEED = 0
 _SCHEMA_HINT = '{"question": str}'
 
 _CSV_COLUMNS = ["question", "expected_chunk_ids", "reference_answer", "approved"]
+
+
+@dataclass
+class GoldenRow:
+    """One frozen, human-approved row — the shape evals/retrieval.py and
+    (Week 3) evals/target.py consume. Mirrors exactly what freeze() writes
+    to golden.jsonl; load_golden() reads it back into this shape."""
+
+    id: str
+    question: str
+    expected_chunk_ids: list[str] = field(default_factory=list)
+    reference_answer: str | None = None
+
+
+def load_golden(path: Path) -> list[GoldenRow]:
+    rows: list[GoldenRow] = []
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rows.append(GoldenRow(**json.loads(line)))
+    return rows
 
 
 def generate(snapshot: SnapshotReader, n: int, judge: JudgeLike) -> pd.DataFrame:

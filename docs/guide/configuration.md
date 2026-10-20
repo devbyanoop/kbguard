@@ -12,7 +12,7 @@ store:
   collection: policies
 ```
 
-`judge`, `evals`, and `target` are only needed once you use features that depend on them (contradiction checking, running evals). `evals`/`target` aren't implemented yet (Week 3); `judge` is implemented (`judge/client.py`) but still optional — only `checks.contradictions` needs it today, and that check is disabled by default specifically so a judge is never forced on you.
+`judge`, `evals`, and `target` are only needed once you use features that depend on them — `checks.contradictions` and the answer-quality metrics (`judge`), `kbguard eval`/`golden generate`/`calibrate` (`evals`), and answer-quality metrics specifically (`target`). All three are fully implemented; `checks.contradictions` defaults to disabled specifically so a judge is never forced on you by default.
 
 ## Full example
 
@@ -63,8 +63,8 @@ fail_on:
   health_drop: 3
 ```
 
-!!! note "checks, health, and judge are real; evals/target aren't wired up yet"
-    All four `checks.*` sections and `health:` are read by real, tested code ([Knowledge-base checks](checks/overview.md), [Health score](../guide/health-score.md)) today, and `kbguard scan` genuinely runs every enabled check and writes a report — not just a check invoked manually in a script, as in earlier weeks. `judge:` is also real ([Judge & calibration](evals/judge-and-calibration.md)), needed only if `checks.contradictions.enabled` is `true` (it defaults to `false` for exactly this reason). `evals` and `target` are still planned for Week 3 — see [Roadmap & status](../project/roadmap.md). Writing those two sections today won't error, but nothing consumes them yet.
+!!! note "Every section on this page is real"
+    `checks.*`, `health:`, `judge:`, `evals:`, `target:`, and `fail_on:` are all read by real, tested code today — `kbguard scan` runs every enabled check and writes a report, `kbguard eval` runs retrieval and (if configured) answer-quality metrics, `kbguard diff` applies `fail_on` rules for CI gating. `judge:` is needed only if `checks.contradictions.enabled` is `true` (it defaults to `false` for exactly this reason) or if `evals.metrics` names any answer-quality metric. See [Roadmap & status](../project/roadmap.md) for exactly what each piece is tested against.
 
 ## Reference
 
@@ -132,6 +132,7 @@ Weights for the [health score](../guide/health-score.md) formula. Don't need to 
 | `method` | string | `POST` | |
 | `answer_path` | string | `$.answer` | |
 | `contexts_path` | string | `$.contexts` | |
+| `timeout` | float | `30.0` | HTTP only — a plain Python callable has no cross-platform-safe timeout without extra threading complexity, a deliberate v0.1 limit. |
 
 ### `fail_on` (optional)
 
