@@ -7,6 +7,7 @@ from pgvector import Vector
 from pgvector.psycopg import register_vector
 from psycopg import sql
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.config import resolve_env
 from kbguard.models import Chunk
 
@@ -68,11 +69,35 @@ class PgVectorAdapter:
         ]:
             _safe_identifier(value, what=what)
 
+        # No explicit connect_timeout, by default, means no timeout at all
+        # -- confirmed by hand with a real unresponsive port: libpq (via
+        # psycopg) took 260 SECONDS to give up on its own, not an instant
+        # connection-refused. Same class of gap as adapters/pinecone.py's
+        # own timeout fix earlier -- a misconfigured/unreachable host
+        # should fail in seconds, not hang for minutes. Note this is a
+        # PER-ADDRESS timeout, not a total deadline -- confirmed by hand
+        # that "localhost" resolves to both ::1 and 127.0.0.1, so a real
+        # worst case is roughly 2x this value, not exactly this value.
+        connect_timeout = settings.get("connect_timeout", 10)
+
         # autocommit: kbguard never writes, so there's nothing to commit or
         # roll back — no reason to hold an open transaction across calls.
-        self._conn = psycopg.connect(
-            host=host, port=port, user=user, password=password, dbname=dbname, autocommit=True
-        )
+        try:
+            self._conn = psycopg.connect(
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                dbname=dbname,
+                autocommit=True,
+                connect_timeout=connect_timeout,
+            )
+        except psycopg.Error as exc:
+            # psycopg.connect() is eager -- a bad host/port/password/dbname
+            # raises right here, confirmed by hand, unlike qdrant/pinecone's
+            # lazy clients. psycopg.Error is the real common base for this
+            # (confirmed via OperationalError.__mro__ before relying on it).
+            raise AdapterConnectionError(f"could not connect to pgvector at {host}:{port}: {exc}") from exc
         # Requires the vector extension already enabled on the target
         # database — kbguard never runs CREATE EXTENSION itself (DDL is a
         # write; read-only is a hard design constraint, not a default).
