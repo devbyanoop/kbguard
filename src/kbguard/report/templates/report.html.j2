@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>kbguard report — {{ results.snapshot.collection }}</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; margin: 2rem; color: #1a1a1a; background: #fafafa; }
+  header { margin-bottom: 2rem; }
+  h1 { margin: 0 0 0.25rem 0; font-size: 1.4rem; }
+  .meta { color: #555; font-size: 0.9rem; }
+  .health { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; }
+  .health-score { font-size: 3rem; font-weight: bold; padding: 0.25rem 1rem; border-radius: 8px; }
+  .health-good { background: #d4edda; color: #1e7e34; }
+  .health-warn { background: #fff3cd; color: #946c00; }
+  .health-bad { background: #f8d7da; color: #a71d2a; }
+  section { margin-bottom: 2rem; }
+  h2 { font-size: 1.1rem; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
+  .finding { background: white; border: 1px solid #e0e0e0; border-left-width: 4px; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+  .sev-error { border-left-color: #a71d2a; }
+  .sev-warn { border-left-color: #946c00; }
+  .sev-info { border-left-color: #0366d6; }
+  .badge { display: inline-block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; padding: 0.1rem 0.5rem; border-radius: 3px; margin-right: 0.5rem; }
+  .badge.sev-error { background: #a71d2a; color: white; border-left: none; }
+  .badge.sev-warn { background: #946c00; color: white; border-left: none; }
+  .badge.sev-info { background: #0366d6; color: white; border-left: none; }
+  .message { font-weight: 600; margin: 0.3rem 0; }
+  .chunk-ids { font-family: monospace; font-size: 0.85rem; color: #444; }
+  .evidence { font-family: monospace; font-size: 0.8rem; color: #666; margin-top: 0.3rem; white-space: pre-wrap; word-break: break-word; }
+  .empty { color: #888; font-style: italic; }
+  table { border-collapse: collapse; width: 100%; background: white; }
+  th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>kbguard report: {{ results.snapshot.collection }}</h1>
+  <div class="meta">
+    Snapshot {{ results.snapshot.id }} · adapter {{ results.snapshot.adapter }} ·
+    {{ results.snapshot.chunk_count }} chunks · created {{ results.snapshot.created_at }}
+  </div>
+  <div class="health">
+    <div class="health-score {% if results.health >= 80 %}health-good{% elif results.health >= 50 %}health-warn{% else %}health-bad{% endif %}">
+      {{ results.health }}
+    </div>
+    <div>Health score (0–100)</div>
+  </div>
+</header>
+
+<section>
+  <h2>Findings ({{ results.findings | length }})</h2>
+  {% if not results.findings %}
+    <p class="empty">No findings — nothing to report.</p>
+  {% else %}
+    {% for check_name, check_findings in results.findings | groupby("check") %}
+      <h3>{{ check_name }} ({{ check_findings | length }})</h3>
+      {% for finding in check_findings %}
+        <div class="finding sev-{{ finding.severity }}">
+          <span class="badge sev-{{ finding.severity }}">{{ finding.severity }}</span>
+          <div class="message">{{ finding.message }}</div>
+          <div class="chunk-ids">chunks: {{ finding.chunk_ids | join(", ") }}</div>
+          {% if finding.evidence %}
+            <div class="evidence">{{ finding.evidence }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+</section>
+
+<section>
+  <h2>Eval results ({{ results.eval_results | length }})</h2>
+  {% if not results.eval_results %}
+    <p class="empty">No eval results — nothing to report.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr><th>Question</th><th>Metric</th><th>Value</th><th>Passed</th><th>Cause</th></tr>
+      </thead>
+      <tbody>
+        {% for result in results.eval_results %}
+          <tr>
+            <td>{{ result.question_id }}</td>
+            <td>{{ result.metric }}</td>
+            <td>{{ "%.3f" | format(result.value) }}</td>
+            <td>{{ "yes" if result.passed else "no" }}</td>
+            <td>{{ result.cause }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from kbguard.models import Chunk
 
@@ -12,6 +12,15 @@ class VectorStoreAdapter(Protocol):
     """
 
     name: str
+
+    # "full": iter_chunks() genuinely walks the entire collection (every
+    # native adapter). "sampled": it can't — the wrapped store exposes no
+    # enumeration API at all, only similarity search, so iter_chunks()
+    # approximates coverage via search-based sampling instead (so far,
+    # only bridge_langchain.py). SnapshotWriter records this verbatim into
+    # the snapshot manifest, so nothing downstream can mistake a sampled
+    # scan for a complete one.
+    iteration_mode: Literal["full", "sampled"]
 
     def connect(self, **settings: Any) -> None: ...
 

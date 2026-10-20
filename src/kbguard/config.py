@@ -80,7 +80,15 @@ _ALL_FACT_TYPES: list[FactType] = ["number", "date", "money", "percent", "durati
 
 
 class ContradictionsCheckConfig(_StrictModel):
-    enabled: bool = True
+    # Unlike duplicates/stale_versions/chunking_damage, this check can't do
+    # anything at all without a configured judge (every candidate is
+    # judge-confirmed, never reported unconfirmed — checks/contradictions.py's
+    # ContradictionsCheckError) — matching this project's own stated
+    # principle (docs/guide/configuration.md) that judge-dependent features
+    # stay off until a judge is actually configured, not force every scan
+    # to need one. Enabling this without `judge:` set is a clear config
+    # error (checks/contradictions.py raises), not a silent no-op either.
+    enabled: bool = False
     types: list[FactType] = Field(default_factory=lambda: list(_ALL_FACT_TYPES))
     severity: Severity = "error"
 
@@ -90,6 +98,18 @@ class ChecksConfig(_StrictModel):
     stale_versions: StaleVersionsCheckConfig = StaleVersionsCheckConfig()
     chunking_damage: ChunkingDamageCheckConfig = ChunkingDamageCheckConfig()
     contradictions: ContradictionsCheckConfig = ContradictionsCheckConfig()
+
+
+class HealthWeights(_StrictModel):
+    # Spec section 11's defaults, summing to 1.0 -- a collection flagged at
+    # 100% on every dimension at once scores exactly 0, not some other
+    # number a non-obvious rounding choice might produce. Not required to
+    # sum to 1 if a user overrides them (scoring/health.py's compute_health
+    # clamps to [0, 100] regardless), but the defaults do.
+    duplicates: float = 0.15
+    stale_versions: float = 0.30
+    chunking_damage: float = 0.20
+    contradictions: float = 0.35
 
 
 class JudgeConfig(_StrictModel):
@@ -137,6 +157,7 @@ class KBGuardConfig(_StrictModel):
     metadata_map: dict[str, str] = Field(default_factory=dict)
     embeddings: EmbeddingsConfig = EmbeddingsConfig()
     checks: ChecksConfig = ChecksConfig()
+    health: HealthWeights = HealthWeights()
     judge: JudgeConfig | None = None
     evals: EvalsConfig | None = None
     target: TargetConfig | None = None

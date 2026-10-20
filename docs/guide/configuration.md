@@ -12,7 +12,7 @@ store:
   collection: policies
 ```
 
-`judge`, `evals`, and `target` are only needed once you use features that depend on them (contradiction checking, running evals) — not yet implemented, so there's no reason to force them into every config today.
+`judge`, `evals`, and `target` are only needed once you use features that depend on them (contradiction checking, running evals). `evals`/`target` aren't implemented yet (Week 3); `judge` is implemented (`judge/client.py`) but still optional — only `checks.contradictions` needs it today, and that check is disabled by default specifically so a judge is never forced on you.
 
 ## Full example
 
@@ -37,7 +37,13 @@ checks:
   duplicates: {cosine: 0.97, minhash_jaccard: 0.3}
   stale_versions: {enabled: true}
   chunking_damage: {min_tokens: 40, max_tokens: 800, required_metadata: [source]}
-  contradictions: {types: [number, date, money, percent, duration]}
+  contradictions: {enabled: true, types: [number, date, money, percent, duration]}
+
+health:
+  duplicates: 0.15
+  stale_versions: 0.30
+  chunking_damage: 0.20
+  contradictions: 0.35
 
 judge:
   model: ollama/llama3
@@ -57,8 +63,8 @@ fail_on:
   health_drop: 3
 ```
 
-!!! note "checks.duplicates, checks.stale_versions, and checks.chunking_damage are real; contradictions/judge/evals/target aren't wired up yet"
-    `checks.duplicates`, `checks.stale_versions`, and `checks.chunking_damage` are each read by a real, tested check ([Duplicates](checks/duplicates.md), [Stale versions](checks/stale-versions.md), [Chunking damage](checks/chunking-damage.md)) today. `contradictions`, `judge`, `evals`, and `target` are still planned — see [Roadmap & status](../project/roadmap.md). Writing those sections today won't error, but nothing consumes them yet. Note also that `kbguard scan` doesn't automatically *run* any check yet (that's Week 2's `cli.py` second pass) — today a check has to be invoked directly, e.g. in a script or test.
+!!! note "checks, health, and judge are real; evals/target aren't wired up yet"
+    All four `checks.*` sections and `health:` are read by real, tested code ([Knowledge-base checks](checks/overview.md), [Health score](../guide/health-score.md)) today, and `kbguard scan` genuinely runs every enabled check and writes a report — not just a check invoked manually in a script, as in earlier weeks. `judge:` is also real ([Judge & calibration](evals/judge-and-calibration.md)), needed only if `checks.contradictions.enabled` is `true` (it defaults to `false` for exactly this reason). `evals` and `target` are still planned for Week 3 — see [Roadmap & status](../project/roadmap.md). Writing those two sections today won't error, but nothing consumes them yet.
 
 ## Reference
 
@@ -87,7 +93,18 @@ A mapping from kbguard's standard `Chunk` fields (`source`, `version`, `updated_
 
 ### `checks`
 
-Each of `duplicates`, `stale_versions`, `chunking_damage`, `contradictions` has its own `enabled: bool = true` and a `severity` override, plus check-specific tuning fields (shown in the full example above). Defaults mostly follow the original architecture spec, with one correction made after measuring against real data: `duplicates.minhash_jaccard` is `0.3`, not the spec's original `0.9` — see [Duplicates](checks/duplicates.md) for why. `chunking_damage.required_metadata` defaults to `[]` (flags nothing) until you list the fields you actually require; see [Chunking damage](checks/chunking-damage.md) for why its example-corpus config overrides `min_tokens` to `10`.
+Each of `duplicates`, `stale_versions`, `chunking_damage` has `enabled: bool = true`; `contradictions` has `enabled: bool = false` (see [Contradictions](checks/contradictions.md) for why it's the one exception) — plus a `severity` override and check-specific tuning fields (shown in the full example above) on all four. Defaults mostly follow the original architecture spec, with one correction made after measuring against real data: `duplicates.minhash_jaccard` is `0.3`, not the spec's original `0.9` — see [Duplicates](checks/duplicates.md) for why. `chunking_damage.required_metadata` defaults to `[]` (flags nothing) until you list the fields you actually require; see [Chunking damage](checks/chunking-damage.md) for why its example-corpus config overrides `min_tokens` to `10`.
+
+### `health` (optional)
+
+| Field | Type | Default |
+| --- | --- | --- |
+| `duplicates` | float | `0.15` |
+| `stale_versions` | float | `0.30` |
+| `chunking_damage` | float | `0.20` |
+| `contradictions` | float | `0.35` |
+
+Weights for the [health score](../guide/health-score.md) formula. Don't need to sum to 1 — `compute_health` clamps the result to `[0, 100]` regardless.
 
 ### `judge` (optional)
 

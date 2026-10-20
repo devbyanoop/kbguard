@@ -33,7 +33,7 @@ dependencies = [
 chroma = ["chromadb>=0.5"]
 pgvector = ["psycopg[binary]>=3.1", "pgvector>=0.3"]
 qdrant = ["qdrant-client>=1.9"]
-pinecone = ["pinecone-client>=4.0"]
+pinecone = ["pinecone>=5.0"]
 langchain = ["langchain-core>=0.2"]
 llamaindex = ["llama-index-core>=0.10"]
 ragas = ["ragas>=0.1"]
@@ -66,6 +66,8 @@ all = [
 chroma = "kbguard.adapters.chroma:ChromaAdapter"
 pgvector = "kbguard.adapters.pgvector:PgVectorAdapter"
 qdrant = "kbguard.adapters.qdrant:QdrantAdapter"
+pinecone = "kbguard.adapters.pinecone:PineconeAdapter"
+bridge_langchain = "kbguard.adapters.bridge_langchain:LangChainBridgeAdapter"
 
 [project.entry-points."kbguard.checks"]
 # Same registration mechanism as adapters — a third-party check package
@@ -73,6 +75,7 @@ qdrant = "kbguard.adapters.qdrant:QdrantAdapter"
 duplicates = "kbguard.checks.duplicates:DuplicatesCheck"
 stale_versions = "kbguard.checks.stale_versions:StaleVersionsCheck"
 chunking_damage = "kbguard.checks.chunking_damage:ChunkingDamageCheck"
+contradictions = "kbguard.checks.contradictions:ContradictionsCheck"
 
 [project.scripts]
 kbguard = "kbguard.cli:app"
