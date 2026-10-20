@@ -5,7 +5,7 @@ from typing import Any
 import typer
 from pydantic import ValidationError
 
-from kbguard.adapters.base import VectorStoreAdapter
+from kbguard.adapters.base import AdapterConnectionError, VectorStoreAdapter
 from kbguard.checks.base import CheckContext
 from kbguard.checks.contradictions import ContradictionsCheckError
 from kbguard.config import ConfigError, KBGuardConfig
@@ -20,7 +20,7 @@ from kbguard.ingest.metadata import MetadataMappingError
 from kbguard.ingest.snapshot import SnapshotError, SnapshotReader, SnapshotWriter, append_findings
 from kbguard.judge.cache import JudgeCache
 from kbguard.judge.calibrate import calibrate as run_calibration
-from kbguard.judge.client import JudgeClient
+from kbguard.judge.client import JudgeClient, JudgeError
 from kbguard.models import EvalResult, Finding, Snapshot
 from kbguard.registry import RegistryError, load_adapter, load_check
 from kbguard.report.html import render_html
@@ -86,6 +86,8 @@ _USER_FACING_ERRORS = (
     EmbeddingError,
     SnapshotError,
     ContradictionsCheckError,
+    AdapterConnectionError,
+    JudgeError,
 )
 
 

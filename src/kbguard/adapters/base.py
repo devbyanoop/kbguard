@@ -4,6 +4,18 @@ from typing import Any, Literal, Protocol
 from kbguard.models import Chunk
 
 
+class AdapterConnectionError(Exception):
+    """Raised when an adapter can't actually reach/authenticate to its
+    store — wrong host/port, server down, bad credentials — as opposed to
+    a missing config *value* (that's a plain `ValueError`, raised before
+    any real call is attempted) or a missing *env var* (`ConfigError`).
+    Every adapter wraps its own client library's real connection failure
+    into this one shared type specifically so `cli.py` can print one clean
+    message for it; without this, a bad password or an unreachable host
+    surfaces as a full raw traceback from psycopg/qdrant_client/pinecone's
+    own exception types, confirmed by hand before this existed."""
+
+
 class VectorStoreAdapter(Protocol):
     """The only contract kbguard knows about a vector store. Everything
     downstream (ingest, checks, evals) works on the `Chunk` records this

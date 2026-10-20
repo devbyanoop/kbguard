@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from typing import Any
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.config import resolve_env
 from kbguard.models import Chunk
 
@@ -34,7 +35,7 @@ class PineconeAdapter:
 
     def connect(self, **settings: Any) -> None:
         try:
-            from pinecone import Pinecone
+            from pinecone import Pinecone, PineconeException
         except ImportError as exc:
             raise ImportError(
                 'the pinecone adapter needs the \'pinecone\' extra: pip install "kbguard[pinecone]" '
@@ -56,7 +57,22 @@ class PineconeAdapter:
         # whatever key the client used.
         self._text_field = settings.get("text_field", "text")
         self._timeout = settings.get("timeout", _DEFAULT_TIMEOUT)
-        self._client = Pinecone(api_key=api_key)
+        client = Pinecone(api_key=api_key)
+
+        try:
+            # Pinecone(api_key=...) never raises for a bad key -- confirmed
+            # by hand: it stays lazy until the first real call. list_indexes()
+            # is the cheapest real call that proves the key actually works
+            # (it needs no index name yet, unlike describe_index_stats()),
+            # so connect() itself fails clearly instead of every later call
+            # site needing its own identical wrapping. No timeout param
+            # exists on this specific call (see _DEFAULT_TIMEOUT's own
+            # comment) -- a real, unavoidable gap in the client itself.
+            client.list_indexes()
+        except PineconeException as exc:
+            raise AdapterConnectionError(f"could not connect to Pinecone: {exc}") from exc
+
+        self._client = client
 
     def _require_client(self) -> Any:
         if self._client is None:

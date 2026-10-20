@@ -1,8 +1,24 @@
 import uuid
+from pathlib import Path
 
 import pytest
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.adapters.chroma import ChromaAdapter
+
+
+def test_connect_wraps_a_real_connection_failure(tmp_path: Path) -> None:
+    """Local-only (no remote host to misconfigure), but an unwritable
+    path still fails eagerly right here -- confirmed by hand: a file
+    sitting where the persistent directory needs to go blocks chromadb
+    from creating it, cross-platform (no OS-specific bad path needed)."""
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
+
+    adapter = ChromaAdapter()
+
+    with pytest.raises(AdapterConnectionError, match="could not open the Chroma store"):
+        adapter.connect(path=str(blocker / "sub"))
 
 
 @pytest.fixture

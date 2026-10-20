@@ -2,7 +2,9 @@ from collections.abc import Iterator
 from typing import Any
 
 from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import ApiException
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.config import resolve_env
 from kbguard.models import Chunk
 
@@ -35,9 +37,23 @@ class QdrantAdapter:
         self._id_field = settings.get("id_field")
 
         if url is not None:
-            self._client = QdrantClient(url=url, api_key=api_key)
+            client = QdrantClient(url=url, api_key=api_key)
         else:
-            self._client = QdrantClient(host=host, port=port, api_key=api_key)
+            client = QdrantClient(host=host, port=port, api_key=api_key)
+
+        try:
+            # QdrantClient's own constructor never raises for a bad host,
+            # port, or key -- confirmed by hand: it stays lazy until the
+            # first real call. get_collections() is the cheapest real call
+            # that proves the connection (and auth) actually works, so
+            # connect() itself fails clearly instead of every later call
+            # site (iter_chunks, search, count, collections) needing its
+            # own identical wrapping.
+            client.get_collections()
+        except ApiException as exc:
+            raise AdapterConnectionError(f"could not connect to Qdrant at {url or f'{host}:{port}'}: {exc}") from exc
+
+        self._client = client
 
     def _require_client(self) -> QdrantClient:
         if self._client is None:

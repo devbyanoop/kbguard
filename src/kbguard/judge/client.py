@@ -57,26 +57,40 @@ class JudgeClient:
     def _call(self, prompt: str, schema_hint: str) -> str:
         try:
             import litellm
+            import openai
         except ImportError as exc:
             raise JudgeError(
                 'the judge needs the \'litellm\' extra: pip install "kbguard[litellm]"'
             ) from exc
 
-        response = litellm.completion(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": f"Respond with JSON only, matching this shape: {schema_hint}"},
-                {"role": "user", "content": prompt},
-            ],
-            response_format={"type": "json_object"},
-            # LLM-as-judge calls should be as reproducible as the provider
-            # allows -- a judge whose verdict flips between identical calls
-            # undermines every check that relies on it. temperature=0 asks
-            # for the model's most likely token at each step instead of
-            # sampling; it reduces but does not guarantee determinism (see
-            # judge/calibrate.py's whole reason for existing).
-            temperature=0.0,
-        )
+        try:
+            response = litellm.completion(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"Respond with JSON only, matching this shape: {schema_hint}"},
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                # LLM-as-judge calls should be as reproducible as the provider
+                # allows -- a judge whose verdict flips between identical calls
+                # undermines every check that relies on it. temperature=0 asks
+                # for the model's most likely token at each step instead of
+                # sampling; it reduces but does not guarantee determinism (see
+                # judge/calibrate.py's whole reason for existing).
+                temperature=0.0,
+            )
+        except openai.OpenAIError as exc:
+            # litellm maps every provider's own exception (missing/invalid
+            # key, rate limit, timeout, connection refused, ...) onto this
+            # one real shared base -- confirmed by hand via each class's
+            # __mro__ before relying on it here, same as elsewhere in this
+            # project. Without this, a bad or missing API key surfaces as a
+            # full raw traceback through the CLI instead of a clean message
+            # (confirmed by hand: `Error: ...` only happens for exceptions
+            # cli.py's _USER_FACING_ERRORS already knows about, and this
+            # one wasn't in it before).
+            raise JudgeError(f"judge ({self.model}) call failed: {exc}") from exc
+
         content = response.choices[0].message.content
         if not content:
             raise JudgeError(f"judge ({self.model}) returned an empty response")

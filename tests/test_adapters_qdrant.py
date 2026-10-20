@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from kbguard.adapters.base import AdapterConnectionError
 from kbguard.adapters.qdrant import QdrantAdapter
 
 
@@ -11,6 +12,21 @@ def test_require_client_raises_before_connect() -> None:
 
     with pytest.raises(RuntimeError, match="connect"):
         adapter.collections()
+
+
+def test_connect_wraps_a_real_connection_failure() -> None:
+    """QdrantClient(...) never raises for a bad host/port by itself --
+    confirmed by hand it stays lazy until a real call. connect() proves
+    this eagerly via get_collections() specifically so a bad target fails
+    clearly right here, not as a raw qdrant_client exception the first
+    time any other method is used. Port 9999 (nothing ever listens there
+    locally) refuses instantly, confirmed by hand -- unlike pgvector's
+    unresponsive-port case, this needs no explicit timeout override to
+    stay a fast test."""
+    adapter = QdrantAdapter()
+
+    with pytest.raises(AdapterConnectionError, match="could not connect to Qdrant"):
+        adapter.connect(host="localhost", port=9999)
 
 
 def test_search_with_filters_raises_not_implemented(qdrant_connect_settings: dict[str, Any]) -> None:
