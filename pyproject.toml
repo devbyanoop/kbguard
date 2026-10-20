@@ -27,6 +27,7 @@ dependencies = [
     "pyarrow>=16.0",
     "numpy>=1.26",
     "PyYAML>=6.0",
+    "pandas>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +51,7 @@ dev = [
     "httpx>=0.27",
     "python-dotenv>=1.0",
     "types-PyYAML>=6.0",
+    "pandas-stubs>=2.0",
     "pyarrow-stubs>=17.0",
 ]
 docs = [

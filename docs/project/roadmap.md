@@ -55,7 +55,8 @@ This page is the single source of truth for "is X actually built yet?" — updat
 
 **Goal:** a chunking change shows up as a failing `diff`.
 
-- [ ] `evals/golden.py`, `evals/retrieval.py`, `evals/target.py`
+- [x] `evals/golden.py` — `generate(snapshot, n, judge) -> pd.DataFrame` samples up to `n` chunks (deterministic seed, so re-running against an unchanged snapshot samples the same ones) and asks the judge to write one specific, answerable question per chunk — the first use of the judge for *generation*, not yes/no classification. `approved` is always `false` in the output; `freeze(csv_path, out_path)` filters to approved rows and assigns each a stable `id = sha256(question)[:16]`. Found and fixed a real bug while testing against a realistic half-reviewed CSV, not a clean one: a human leaving even one row's `approved` cell blank makes `pandas` infer that column as mixed type (`bool`/`NaN`), and a naive boolean mask on it raises `ValueError: Cannot mask with non-boolean array containing NA/NaN values` — confirmed by hand. Fixed by parsing each cell explicitly instead of trusting pandas' automatic dtype inference. `pandas>=2.0` added as a core dependency, `pandas-stubs` to `dev` for `mypy --strict`. 13 tests including a real-corpus simulation of a human approving 2 of 5 generated rows and leaving the rest blank.
+- [ ] `evals/retrieval.py`, `evals/target.py`
 - [ ] `evals/metrics/base.py`, `ragas_plugin.py`, `deepeval_plugin.py`
 - [ ] `judge/calibrate.py`
 - [ ] `scoring/diff.py`
