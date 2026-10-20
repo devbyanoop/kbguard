@@ -57,8 +57,8 @@ fail_on:
   health_drop: 3
 ```
 
-!!! note "checks.duplicates and checks.stale_versions are real; chunking_damage/contradictions/judge/evals/target aren't wired up yet"
-    `checks.duplicates` and `checks.stale_versions` are each read by a real, tested check ([Duplicates](checks/duplicates.md), [Stale versions](checks/stale-versions.md)) today. `chunking_damage`, `contradictions`, `judge`, `evals`, and `target` are still planned — see [Roadmap & status](../project/roadmap.md). Writing those sections today won't error, but nothing consumes them yet. Note also that `kbguard scan` doesn't automatically *run* any check yet (that's Week 2's `cli.py` second pass) — today a check has to be invoked directly, e.g. in a script or test.
+!!! note "checks.duplicates, checks.stale_versions, and checks.chunking_damage are real; contradictions/judge/evals/target aren't wired up yet"
+    `checks.duplicates`, `checks.stale_versions`, and `checks.chunking_damage` are each read by a real, tested check ([Duplicates](checks/duplicates.md), [Stale versions](checks/stale-versions.md), [Chunking damage](checks/chunking-damage.md)) today. `contradictions`, `judge`, `evals`, and `target` are still planned — see [Roadmap & status](../project/roadmap.md). Writing those sections today won't error, but nothing consumes them yet. Note also that `kbguard scan` doesn't automatically *run* any check yet (that's Week 2's `cli.py` second pass) — today a check has to be invoked directly, e.g. in a script or test.
 
 ## Reference
 
@@ -87,7 +87,7 @@ A mapping from kbguard's standard `Chunk` fields (`source`, `version`, `updated_
 
 ### `checks`
 
-Each of `duplicates`, `stale_versions`, `chunking_damage`, `contradictions` has its own `enabled: bool = true` and a `severity` override, plus check-specific tuning fields (shown in the full example above). Defaults mostly follow the original architecture spec, with one correction made after measuring against real data: `duplicates.minhash_jaccard` is `0.3`, not the spec's original `0.9` — see [Duplicates](checks/duplicates.md) for why.
+Each of `duplicates`, `stale_versions`, `chunking_damage`, `contradictions` has its own `enabled: bool = true` and a `severity` override, plus check-specific tuning fields (shown in the full example above). Defaults mostly follow the original architecture spec, with one correction made after measuring against real data: `duplicates.minhash_jaccard` is `0.3`, not the spec's original `0.9` — see [Duplicates](checks/duplicates.md) for why. `chunking_damage.required_metadata` defaults to `[]` (flags nothing) until you list the fields you actually require; see [Chunking damage](checks/chunking-damage.md) for why its example-corpus config overrides `min_tokens` to `10`.
 
 ### `judge` (optional)
 
