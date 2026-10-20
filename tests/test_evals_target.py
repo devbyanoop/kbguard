@@ -1,5 +1,6 @@
 import sys
 import types
+from pathlib import Path
 
 import httpx
 import pytest
@@ -95,6 +96,40 @@ def test_python_callable_malformed_string_without_colon_raises() -> None:
 
     with pytest.raises(RagTargetError, match="module:function"):
         target.answer("question")
+
+
+def test_python_callable_importable_from_cwd_with_no_sys_path_preset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every other python-callable test uses `_install_fake_module`, which
+    injects straight into `sys.modules` -- that never exercises real
+    filesystem import resolution at all, which is exactly how a real
+    regression slipped past all of them: `kbguard eval`, run via the
+    installed `kbguard` console script (not `python -m` or a direct
+    `python script.py`), does not get the invoking shell's cwd on
+    sys.path, so a client's own project-local `target.callable` module
+    failed to import even though the identical import worked fine from a
+    plain `python -c` in the same directory. This writes a REAL .py file
+    to a real temp directory, points cwd at it the same way a real
+    console-script invocation would see it, and never touches
+    sys.modules/sys.path itself -- RagTarget's own cwd-on-sys.path fix is
+    what has to make this pass.
+    """
+    module_name = "cwd_resolved_rag_app"
+    (tmp_path / f"{module_name}.py").write_text("def answer(q):\n    return ('ok', ['ctx'])\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert str(tmp_path) not in sys.path  # the exact precondition the real bug needed
+
+    config = TargetConfig(type="python", callable=f"{module_name}:answer")
+    try:
+        answer, contexts = RagTarget(config).answer("question")
+    finally:
+        sys.modules.pop(module_name, None)
+        if str(tmp_path) in sys.path:
+            sys.path.remove(str(tmp_path))
+
+    assert answer == "ok"
+    assert contexts == ["ctx"]
 
 
 def test_python_callable_returning_garbage_raises_rag_target_error(monkeypatch: pytest.MonkeyPatch) -> None:

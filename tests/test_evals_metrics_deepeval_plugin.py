@@ -9,7 +9,7 @@ from kbguard.evals.metrics.deepeval_plugin import (
     DeepevalContextualPrecision,
     DeepevalContextualRecall,
     DeepevalFaithfulness,
-    _LiteLLMDeepEvalModel,
+    _build_litellm_deepeval_model,
 )
 
 
@@ -35,7 +35,7 @@ class _FakeDeepevalMetric:
         return self._passed
 
 
-# --- _LiteLLMDeepEvalModel: genuinely unit-tested, unlike ragas's LLM wrapper ---
+# --- _build_litellm_deepeval_model: genuinely unit-tested, unlike ragas's LLM wrapper ---
 
 
 def _install_fake_litellm(monkeypatch: pytest.MonkeyPatch, response_content: str) -> list[dict[str, Any]]:
@@ -68,7 +68,7 @@ def _install_fake_litellm(monkeypatch: pytest.MonkeyPatch, response_content: str
 
 def test_litellm_model_generate_calls_litellm_with_the_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = _install_fake_litellm(monkeypatch, "the generated text")
-    model = _LiteLLMDeepEvalModel("ollama/llama3")
+    model = _build_litellm_deepeval_model("ollama/llama3")
 
     result = model.generate("a prompt")
 
@@ -80,7 +80,7 @@ def test_litellm_model_generate_calls_litellm_with_the_prompt(monkeypatch: pytes
 @pytest.mark.asyncio
 async def test_litellm_model_a_generate_calls_litellm_async(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = _install_fake_litellm(monkeypatch, "async generated text")
-    model = _LiteLLMDeepEvalModel("gpt-4o-mini")
+    model = _build_litellm_deepeval_model("gpt-4o-mini")
 
     result = await model.a_generate("a prompt")
 
@@ -90,9 +90,40 @@ async def test_litellm_model_a_generate_calls_litellm_async(monkeypatch: pytest.
 
 def test_litellm_model_get_model_name_returns_the_configured_model(monkeypatch: pytest.MonkeyPatch) -> None:
     _install_fake_litellm(monkeypatch, "x")
-    model = _LiteLLMDeepEvalModel("claude-3-5-sonnet")
+    model = _build_litellm_deepeval_model("claude-3-5-sonnet")
 
     assert model.get_model_name() == "claude-3-5-sonnet"
+
+
+def test_model_is_a_real_deepeval_base_llm_instance_not_just_duck_typed() -> None:
+    """The regression this session found for real: the previous design
+    (a composition wrapper forwarding attribute access via __getattr__)
+    passed every test above because they only ever call .generate()/
+    .a_generate()/.get_model_name() directly -- none of them go through
+    deepeval's own FaithfulnessMetric(model=...) constructor, which does
+    a real isinstance(model, DeepEvalBaseLLM) check and raised a real
+    TypeError on the old wrapper. This is the one check that actually
+    catches that class of bug.
+    """
+    from deepeval.models.base_model import DeepEvalBaseLLM
+
+    model = _build_litellm_deepeval_model("gpt-4o-mini")
+
+    assert isinstance(model, DeepEvalBaseLLM)
+
+
+def test_faithfulness_metric_construction_accepts_the_real_wrapper() -> None:
+    """Constructing deepeval's real FaithfulnessMetric never hits the
+    network (only .measure() does) -- confirmed by hand -- so this
+    exercises the exact real code path that raised
+    `TypeError: Unsupported type for model: ..._LiteLLMDeepEvalModel`
+    with zero API key or network dependency.
+    """
+    from deepeval.metrics import FaithfulnessMetric
+
+    metric = FaithfulnessMetric(model=_build_litellm_deepeval_model("gpt-4o-mini"), async_mode=False)
+
+    assert metric is not None
 
 
 # --- the four Metric adapters, via an injected fake deepeval metric ---
