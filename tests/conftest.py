@@ -21,6 +21,16 @@ _QDRANT_PORT = int(os.environ.get("KBGUARD_TEST_QDRANT_PORT", "6333"))
 # load_dotenv() if present in .env; never hardcoded, never logged.
 _PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 _PINECONE_TEST_INDEX = os.environ.get("PINECONE_TEST_INDEX")
+# Real judge for live LLM tests (e.g. checks/contradictions.py) — Groq by
+# default since it's fast/cheap. Specifically qwen/qwen3.8-27b, not
+# openai/gpt-oss-120b: hand-verified (3 fresh calls, temperature=0, no
+# cache reuse) that gpt-oss-120b deterministically judges the live test's
+# planted 1-year-vs-2-year warranty contradiction as NOT a conflict, while
+# qwen3.8-27b deterministically gets it right with a coherent explanation.
+# Model choice matters for judge quality independent of the determinism
+# fix below -- any litellm-routed model works the same way if you point
+# this at a different provider's model string and set that provider's key.
+_REAL_JUDGE_MODEL = os.environ.get("KBGUARD_TEST_JUDGE_MODEL", "groq/qwen/qwen3.8-27b")
 
 
 def _is_reachable(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -69,3 +79,29 @@ def pinecone_index() -> Any:
         pytest.skip(f"Pinecone not usable with the configured credentials: {exc}")
 
     return index
+
+
+@pytest.fixture
+def real_judge(tmp_path: Any) -> Any:
+    """A real JudgeClient backed by a real LLM call (Groq by default,
+    confirmed working by hand before this fixture existed) — not the fake
+    judge every other check test uses. Skips on any failure (missing key,
+    bad model string, network issue, rate limit) rather than an upfront
+    check, same lesson pgvector/Pinecone's fixtures already learned: a
+    key being *set* doesn't mean a real call will actually succeed.
+
+    The cache lives in pytest's own per-test tmp_path, not a shared fixed
+    path — a shared cache would let the very first real call's cached
+    response silently satisfy every later test run's sanity check too,
+    defeating the point of checking connectivity *now*.
+    """
+    from kbguard.judge.cache import JudgeCache
+    from kbguard.judge.client import JudgeClient
+
+    judge = JudgeClient(model=_REAL_JUDGE_MODEL, cache=JudgeCache(tmp_path / "real_judge_cache.sqlite"))
+    try:
+        judge.ask_json('Reply with exactly this JSON: {"ok": true}', '{"ok": bool}')
+    except Exception as exc:  # noqa: BLE001 -- any real-world failure here means "skip", not "error"
+        pytest.skip(f"real judge ({_REAL_JUDGE_MODEL}) not usable with the configured credentials: {exc}")
+
+    return judge
