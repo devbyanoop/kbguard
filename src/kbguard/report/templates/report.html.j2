@@ -5,7 +5,7 @@
 <title>kbguard report — {{ results.snapshot.collection }}</title>
 <style>
   body { font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; margin: 2rem; color: #1a1a1a; background: #fafafa; }
-  header { margin-bottom: 2rem; }
+  header { margin-bottom: 1.5rem; }
   h1 { margin: 0 0 0.25rem 0; font-size: 1.4rem; }
   .meta { color: #555; font-size: 0.9rem; }
   .health { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; }
@@ -15,6 +15,7 @@
   .health-bad { background: #f8d7da; color: #a71d2a; }
   section { margin-bottom: 2rem; }
   h2 { font-size: 1.1rem; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
+  h3 { font-size: 0.95rem; margin-top: 1.25rem; }
   .finding { background: white; border: 1px solid #e0e0e0; border-left-width: 4px; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
   .sev-error { border-left-color: #a71d2a; }
   .sev-warn { border-left-color: #946c00; }
@@ -24,11 +25,33 @@
   .badge.sev-warn { background: #946c00; color: white; border-left: none; }
   .badge.sev-info { background: #0366d6; color: white; border-left: none; }
   .message { font-weight: 600; margin: 0.3rem 0; }
-  .chunk-ids { font-family: monospace; font-size: 0.85rem; color: #444; }
-  .evidence { font-family: monospace; font-size: 0.8rem; color: #666; margin-top: 0.3rem; white-space: pre-wrap; word-break: break-word; }
+  .chunk-info { font-size: 0.85rem; color: #333; margin: 0.4rem 0; padding-left: 0.6rem; border-left: 2px solid #eee; }
+  .chunk-info .chunk-title { font-weight: 600; }
+  .chunk-info .snippet { color: #666; font-style: italic; margin-top: 0.1rem; }
+  .chunk-info .unresolved { font-family: monospace; color: #888; }
+  .action { font-size: 0.85rem; color: #0a5a2a; margin-top: 0.4rem; }
+  .evidence { font-family: monospace; font-size: 0.78rem; color: #666; margin-top: 0.3rem; }
+  .evidence .ev-pair { margin-right: 0.75rem; }
   .empty { color: #888; font-style: italic; }
   table { border-collapse: collapse; width: 100%; background: white; }
   th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+  .verdict { font-size: 1.05rem; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 1rem; }
+
+  /* CSS-only tabs: no JS, no framework -- a radio input per tab, a label
+     per tab acting as its clickable button, and the sibling combinator
+     (~) showing only the content block whose input is :checked. All
+     three inputs, the tab bar, and all three content blocks are direct
+     siblings under .tabs so `~` can reach across to any of them. */
+  .tabs input[type="radio"] { display: none; }
+  .tab-content { display: none; }
+  .tabs input#tab-summary:checked ~ #content-summary,
+  .tabs input#tab-engineering:checked ~ #content-engineering,
+  .tabs input#tab-trend:checked ~ #content-trend { display: block; }
+  .tab-bar { display: flex; gap: 0.25rem; border-bottom: 2px solid #ddd; margin-bottom: 1.5rem; }
+  .tab-bar label { cursor: pointer; padding: 0.6rem 1.1rem; font-size: 0.9rem; font-weight: 600; color: #555; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  .tabs input#tab-summary:checked ~ .tab-bar label[for="tab-summary"],
+  .tabs input#tab-engineering:checked ~ .tab-bar label[for="tab-engineering"],
+  .tabs input#tab-trend:checked ~ .tab-bar label[for="tab-trend"] { color: #0366d6; border-bottom-color: #0366d6; }
 </style>
 </head>
 <body>
@@ -47,50 +70,141 @@
   </div>
 </header>
 
-<section>
-  <h2>Findings ({{ results.findings | length }})</h2>
-  {% if not results.findings %}
-    <p class="empty">No findings — nothing to report.</p>
-  {% else %}
-    {% for check_name, check_findings in results.findings | groupby("check") %}
-      <h3>{{ check_name }} ({{ check_findings | length }})</h3>
-      {% for finding in check_findings %}
-        <div class="finding sev-{{ finding.severity }}">
-          <span class="badge sev-{{ finding.severity }}">{{ finding.severity }}</span>
-          <div class="message">{{ finding.message }}</div>
-          <div class="chunk-ids">chunks: {{ finding.chunk_ids | join(", ") }}</div>
-          {% if finding.evidence %}
-            <div class="evidence">{{ finding.evidence }}</div>
-          {% endif %}
-        </div>
-      {% endfor %}
-    {% endfor %}
-  {% endif %}
-</section>
+<div class="tabs">
+  <input type="radio" name="tabs" id="tab-summary" checked>
+  <input type="radio" name="tabs" id="tab-engineering">
+  <input type="radio" name="tabs" id="tab-trend">
 
-<section>
-  <h2>Eval results ({{ results.eval_results | length }})</h2>
-  {% if not results.eval_results %}
-    <p class="empty">No eval results — nothing to report.</p>
-  {% else %}
-    <table>
-      <thead>
-        <tr><th>Question</th><th>Metric</th><th>Value</th><th>Passed</th><th>Cause</th></tr>
-      </thead>
-      <tbody>
-        {% for result in results.eval_results %}
-          <tr>
-            <td>{{ result.question_id }}</td>
-            <td>{{ result.metric }}</td>
-            <td>{{ "%.3f" | format(result.value) }}</td>
-            <td>{{ "yes" if result.passed else "no" }}</td>
-            <td>{{ result.cause }}</td>
-          </tr>
+  <div class="tab-bar">
+    <label for="tab-summary">Summary</label>
+    <label for="tab-engineering">Engineering</label>
+    <label for="tab-trend">Trend</label>
+  </div>
+
+  <div class="tab-content" id="content-summary">
+    <section>
+      <h2>What this means</h2>
+      <p class="verdict">{{ verdict }}</p>
+    </section>
+
+    <section>
+      <h2>Issue categories</h2>
+      {% if not breakdown %}
+        <p class="empty">No issues found.</p>
+      {% else %}
+        <table>
+          <thead><tr><th>Category</th><th>Count</th></tr></thead>
+          <tbody>
+            {% for cat in breakdown %}
+              <tr><td>{{ cat.label }}</td><td>{{ cat.count }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Top issues to look at first</h2>
+      {% if not top_findings %}
+        <p class="empty">Nothing to prioritize — no findings.</p>
+      {% else %}
+        {% for item in top_findings %}
+          <div class="finding sev-{{ item.finding.severity }}">
+            <span class="badge sev-{{ item.finding.severity }}">{{ item.finding.severity }}</span>
+            <div class="message">{{ item.finding.message }}</div>
+            {% for c in item.chunks %}
+              <div class="chunk-info">
+                {% if c.title %}<span class="chunk-title">{{ c.title }}</span>{% else %}<span class="unresolved">chunk {{ c.id }}</span>{% endif %}
+                {% if c.source %} — {{ c.source }}{% endif %}
+              </div>
+            {% endfor %}
+          </div>
         {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-</section>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="tab-content" id="content-engineering">
+    <section>
+      <h2>Findings ({{ results.findings | length }})</h2>
+      {% if not grouped_findings %}
+        <p class="empty">No findings — nothing to report.</p>
+      {% else %}
+        {% for check_name, items in grouped_findings %}
+          <h3>{{ check_name }} ({{ items | length }})</h3>
+          {% for item in items %}
+            <div class="finding sev-{{ item.finding.severity }}">
+              <span class="badge sev-{{ item.finding.severity }}">{{ item.finding.severity }}</span>
+              <div class="message">{{ item.finding.message }}</div>
+              {% for c in item.chunks %}
+                <div class="chunk-info">
+                  {% if c.title %}<span class="chunk-title">{{ c.title }}</span>{% else %}<span class="unresolved">chunk {{ c.id }}</span>{% endif %}
+                  {% if c.source %} — {{ c.source }}{% endif %}
+                  {% if c.snippet %}<div class="snippet">&ldquo;{{ c.snippet }}&rdquo;</div>{% endif %}
+                </div>
+              {% endfor %}
+              <div class="action">→ {{ item.action }}</div>
+              {% if item.finding.evidence %}
+                <div class="evidence">{% for k, v in item.finding.evidence.items() %}<span class="ev-pair">{{ k }}: {{ v }}</span>{% endfor %}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endfor %}
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Eval results ({{ results.eval_results | length }})</h2>
+      {% if not results.eval_results %}
+        <p class="empty">No eval results — nothing to report.</p>
+      {% else %}
+        <table>
+          <thead>
+            <tr><th>Question</th><th>Metric</th><th>Value</th><th>Passed</th><th>Cause</th></tr>
+          </thead>
+          <tbody>
+            {% for result in results.eval_results %}
+              <tr>
+                <td>{{ result.question_id }}</td>
+                <td>{{ result.metric }}</td>
+                <td>{{ "%.3f" | format(result.value) }}</td>
+                <td>{{ "yes" if result.passed else "no" }}</td>
+                <td>{{ result.cause }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="tab-content" id="content-trend">
+    <section>
+      <h2>Health over time ({{ history | length }} scan(s) on record)</h2>
+      {% if history | length < 2 %}
+        <p class="empty">Only one scan on record for this collection so far — run <code>kbguard scan</code> again later to see a trend here.</p>
+      {% else %}
+        <table>
+          <thead><tr><th>Scanned</th><th>Health</th><th>Chunks</th><th>Findings</th></tr></thead>
+          <tbody>
+            {% for h in history %}
+              <tr><td>{{ h.created_at }}</td><td>{{ h.health }}</td><td>{{ h.chunk_count }}</td><td>{{ h.finding_count }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% set prev = history[-2] %}
+        {% set cur = history[-1] %}
+        <p class="verdict">
+          Since the previous scan ({{ prev.created_at }}): health
+          {% if cur.health > prev.health %}improved{% elif cur.health < prev.health %}dropped{% else %}stayed the same{% endif %}
+          ({{ prev.health }} → {{ cur.health }}); findings
+          {% if cur.finding_count > prev.finding_count %}went up{% elif cur.finding_count < prev.finding_count %}went down{% else %}stayed the same{% endif %}
+          ({{ prev.finding_count }} → {{ cur.finding_count }}).
+        </p>
+      {% endif %}
+    </section>
+  </div>
+</div>
 
 </body>
 </html>
