@@ -226,6 +226,43 @@ def test_clean_text_not_flagged_for_encoding_noise(tmp_path: Path) -> None:
     assert "encoding_noise" not in _rules(_run(_snapshot(tmp_path, [_chunk("a")]), _DEFAULT_CONFIG))
 
 
+def test_repeated_code_or_repl_lines_are_not_false_positives(tmp_path: Path) -> None:
+    """Found scanning two different real documentation sites (LangChain's,
+    then Django's) that this rule kept flagging completely normal,
+    repeated code-shaped lines as "encoding noise": an assignment, a
+    decorator, a REPL repr, an RST directive field, a bare filename in a
+    directory-tree diagram, a bare `import` line, a quoted value shown
+    twice, and a repeated section-separator. None of these are boilerplate
+    leaking in -- real documentation with real code examples repeats
+    short lines like these constantly. Only a repeated *prose* line is a
+    real boilerplate-leak signal."""
+    cases = [
+        "class Reporter:\n    def __str__(self):\n        return self.name\n\nclass Article:\n    def __str__(self):\n        return self.headline",
+        ">>> Reporter.objects.all()\n[]\nSome narration about the query above.\n>>> Reporter.objects.all()\n[<Reporter: John Smith>]",
+        "mysite/\n    __init__.py\n    settings.py\npolls/\n    __init__.py\n    views.py",
+        "Section one\n============\nSome content.\n\nSection two\n============\nMore content.",
+        "from django.db import models\nSome narration here.\nfrom django.db import models",
+        "True\nSome other line of real content.\nTrue",
+        '"BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",\nSome narration.\n"BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",',
+        "urlpatterns = [\nSome narration.\nurlpatterns = [",
+    ]
+    for text in cases:
+        reader = _snapshot(tmp_path / str(hash(text)), [_chunk("a", text=text)])
+        assert "encoding_noise" not in _rules(_run(reader, _DEFAULT_CONFIG)), text
+
+
+def test_a_genuine_repeated_prose_line_is_still_caught_after_the_code_exclusion(tmp_path: Path) -> None:
+    text = (
+        "class Reporter:\n    def __str__(self):\n        return self.name\n\n"
+        "This page is part of the official documentation.\n"
+        "Some real content about the policy goes here, long enough to not look like code.\n"
+        "This page is part of the official documentation."
+    )
+    reader = _snapshot(tmp_path, [_chunk("a", text=text)])
+
+    assert "encoding_noise" in _rules(_run(reader, _DEFAULT_CONFIG))
+
+
 # --- disabled / against real corpus ---
 
 
