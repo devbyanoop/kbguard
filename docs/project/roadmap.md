@@ -80,6 +80,8 @@ This page is the single source of truth for "is X actually built yet?" — updat
 
 - [x] **PyPI release workflow** (`.github/workflows/release.yml`) — builds, re-verifies (ruff/mypy/pytest/`twine check`), and publishes to the real PyPI index via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC, no stored API token) whenever a GitHub Release is published. Deliberately not wired to publish automatically on every push — a human creating a Release is the trigger. The one PyPI-side setup step (registering the trusted publisher) needs the account owner's own login and isn't something this repo or a workflow can do on its own behalf; documented in [Contributing](contributing.md#releasing-to-pypi). Nothing has actually been published yet — this sets up the mechanism, not the act.
 
+- [x] **`encoding_noise`'s false-positive-prone heuristic fixed** — see [Changelog](changelog.md) for the full account. Two narrower fixes each turned into whack-a-mole against an open-ended family of real code shapes; redesigned around one general length + word-shape mechanism instead. Verified against a real rescan of the Django corpus that exposed this: findings dropped from 86 to 10 (88%), with the 10 remaining named as a known, accepted limitation rather than hidden.
+
 ## Full internal build plan
 
 The complete file-by-file build plan — purpose, concepts, design rationale, and verification steps for every file above — lives in the project's own `Plan/BUILD_PLAN.md` (not published here; it's written for the person building kbguard, not for the end-user guide you're reading now).
