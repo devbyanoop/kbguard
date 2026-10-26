@@ -47,4 +47,5 @@ A `kbguard diff` between two scans is what makes this usable in CI: it can block
 
 - New to kbguard? Start with [Installation](getting-started/installation.md).
 - Want to see what's actually built today? Check [Roadmap & status](project/roadmap.md).
+- Want proof this finds real problems, not just planted ones? See the [sample audit report](project/sample-audit-report.md) against LangChain's own real public documentation.
 - Curious how a specific check works? See the [Knowledge-base checks](guide/checks/overview.md) section.

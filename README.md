@@ -84,6 +84,7 @@ Full guide (configuration, every check, every adapter, evals, judge calibration,
 - [Configuration reference](docs/guide/configuration.md)
 - [CLI reference](docs/reference/cli.md)
 - [Roadmap & status](docs/project/roadmap.md) — what's actually built vs. planned, updated the same day anything changes
+- [Sample audit report](docs/project/sample-audit-report.md) — a real `kbguard scan` run against LangChain's own live public documentation, not a synthetic test corpus
 
 ## Project status
 

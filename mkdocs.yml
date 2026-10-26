@@ -69,6 +69,7 @@ nav:
       - CLI: reference/cli.md
   - Project:
       - Roadmap & status: project/roadmap.md
+      - Sample audit report: project/sample-audit-report.md
       - FAQ: project/faq.md
       - Contributing: project/contributing.md
       - Changelog: project/changelog.md
