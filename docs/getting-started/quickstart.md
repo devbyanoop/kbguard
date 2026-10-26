@@ -53,7 +53,7 @@ start .kbguard\snapshots\<your-snapshot-id>\report.html
 open .kbguard/snapshots/<your-snapshot-id>/report.html
 ```
 
-You should see a health score of **86** and 10 findings grouped by check: 2 duplicate pairs, 1 stale-version pair, and 7 chunking-damage findings across the corpus's 6 planted rule violations. Re-render the same report without re-scanning at any point:
+You should see a health score of **86** and 10 findings across three tabs — **Summary** (a plain-language verdict and top issues, open by default), **Engineering** (every finding grouped by check — 2 duplicate pairs, 1 stale-version pair, 7 chunking-damage findings — each enriched with its real source and a suggested fix), and **Trend** (health over every past scan of this collection). Re-render the same report without re-scanning at any point:
 
 ```bash
 kbguard report <your-snapshot-id> --config examples/policy_corpus/kbguard.yaml
