@@ -1,0 +1,89 @@
+name: Publish to PyPI
+
+# Publishes a tagged release to the real PyPI index via Trusted Publishing
+# (OIDC — no stored API token, confirmed as PyPA's own current recommended
+# approach before writing this: https://docs.pypi.org/trusted-publishers/).
+# This workflow does NOT publish anything by itself. Nothing uploads until
+# a human explicitly creates a GitHub Release (which itself requires a
+# tag) — a deliberate, one-click-away-but-not-automatic trigger, not "every
+# push publishes."
+#
+# One-time manual setup required before this can work at all (done once,
+# on pypi.org, by whoever owns the PyPI account — not something a CI
+# workflow or an agent can do on your behalf):
+#   1. Create the `kbguard` project on PyPI (or reserve the name) if it
+#      doesn't exist yet.
+#   2. On the project's "Publishing" settings page, add a trusted
+#      publisher: GitHub owner "devbyanoop", repository "kbguard",
+#      workflow filename "release.yml", environment name "pypi" (must
+#      match exactly, including the environment below).
+#   3. In this repo's GitHub settings, create an environment named
+#      "pypi" (Settings → Environments) — add protection rules (e.g.
+#      required reviewers) if you want a human approval step before
+#      every publish, which is recommended for a one-way action like
+#      this.
+# See docs.pypi.org/trusted-publishers/adding-a-publisher/ for the exact
+# current PyPI-side steps (these change rarely but are PyPI's own UI, not
+# this repo's to document precisely).
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build and verify the distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install kbguard with every extra the test suite needs
+        run: pip install -e ".[all]"
+
+      - name: ruff
+        run: ruff check src tests contract_tests examples conftest.py
+
+      - name: mypy --strict
+        run: mypy src/kbguard
+
+      - name: pytest (unit + contract tests; real external services/APIs skip cleanly without credentials)
+        run: pytest -q
+
+      - name: Build sdist and wheel
+        run: |
+          pip install --upgrade build twine
+          python -m build
+          twine check dist/*
+
+      - name: Upload the built distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Matches the trusted-publisher configuration's "environment name"
+    # exactly (see the setup note above) — PyPI checks this as part of
+    # verifying the OIDC token actually came from the workflow/environment
+    # it was told to trust, not just from this repo in general.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/kbguard
+    permissions:
+      id-token: write  # the one thing trusted publishing actually needs — no secrets.PYPI_API_TOKEN anywhere
+    steps:
+      - name: Download the distribution built and verified above
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

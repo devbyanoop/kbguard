@@ -57,6 +57,18 @@ The same skip-cleanly-when-unconfigured rule applies: `tests/test_adapters_pinec
 4. **Cheap first, LLM last** — deterministic and embedding-based filtering must narrow candidates before any LLM call.
 5. **Read-only, always** — kbguard must never write to a client's vector store. There should be no code path, in any adapter, that performs a write.
 
+## Releasing to PyPI
+
+`.github/workflows/release.yml` builds, verifies (`ruff`, `mypy --strict`, `pytest`, `twine check`), and publishes to the real PyPI index via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC — no stored API token) whenever a GitHub Release is published. It does not run on every push, and nothing is uploaded automatically — creating a GitHub Release (which itself requires a tag) is the deliberate, human trigger.
+
+**One-time setup, before the first release (PyPI-side, not this repo's — only the account owner can do this):**
+
+1. Reserve/create the `kbguard` project on PyPI if it doesn't exist yet.
+2. On that project's "Publishing" settings page, add a trusted publisher pointing at this exact repo: owner `devbyanoop`, repository `kbguard`, workflow filename `release.yml`, environment name `pypi`.
+3. In this repo's GitHub settings, create an environment named `pypi` (Settings → Environments) — add required-reviewer protection on it if you want a human approval step before every publish, which is worth having for a one-way action like this.
+
+**To cut a release**, once that's set up: bump `version` in `pyproject.toml`, commit, tag it (`git tag v0.1.0 && git push --tags`), then create a GitHub Release from that tag. The workflow handles the rest.
+
 ## Documentation
 
 This guide (`docs/`) is written incrementally, alongside the code — a feature's documentation is written and verified the same day the feature itself is built and tested, not ahead of time. Pages for unbuilt features carry an explicit "Planned" warning with scope only, no invented usage examples. If you're adding a feature, update its doc page in the same change.
