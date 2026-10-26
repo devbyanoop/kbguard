@@ -2,7 +2,7 @@
 
 This page is the single source of truth for "is X actually built yet?" — updated the same day any item's status changes, not retroactively. If a page elsewhere in this guide seems to claim more than this page shows as done, trust this page.
 
-**Last updated:** 2026-10-20 (later same day, three times)
+**Last updated:** 2026-10-26 — Week 4 complete.
 
 ## Phase 0 — scaffold
 
@@ -71,11 +71,11 @@ This page is the single source of truth for "is X actually built yet?" — updat
 
 ## Week 4 — docs, packaging, release
 
-- [ ] Full README quickstart
-- [ ] This docs site filled in end to end, placeholders removed
-- [ ] PyPI packaging verified (`twine check`, clean-venv install from built wheel)
-- [ ] Sample audit report against a real public corpus, published
-- [ ] Write-up / case study for outreach
+- [x] **Full README quickstart** — rewritten from a 5-line stub: real problem statement, every real CLI command, supported stores, a verified install/quickstart, honest project status, Apache 2.0 license. Every claim checked against the repo before writing it (adapter line counts, which doc files exist, real PyPI pages for ragas/deepeval rather than a guessed GitHub org, since both libraries' current GitHub ownership turned out to be genuinely ambiguous across sources).
+- [x] **Docs site filled in end to end, placeholders removed** — swept every page under `docs/` for stale "Planned"/"TODO" markers; found and fixed one real stub left over from Week 2 (`guide/checks/custom-check.md`, 12 lines), with a worked example (`banned_phrases`) run for real against the example corpus before being written into the page. Also fixed `installation.md`'s extras table, which still said several already-shipped adapters/libraries were "Planned."
+- [x] **PyPI packaging verified** (`twine check`, clean-venv install from built wheel) — built the real sdist/wheel, `twine check` passed both. The clean-venv install (not editable, not from source) immediately found a real packaging bug no editable dev install (which always has every extra via `[all]`) could have caught: `checks/duplicates.py` imported `faiss`/`datasketch` at module level, so `pip install "kbguard[chroma]"` followed by a plain `kbguard scan` crashed outright — `duplicates` is enabled by default, so this wasn't a hypothetical user. Fixed (lazy imports, a clean `DuplicatesCheckError`, wired into `cli.py`'s clean-error list) and reverified: the same clean venv, now with `chroma,dedup,nlp`, produces the identical real result (health=86, 10 findings) as every other scan of the example corpus.
+- [x] **Sample audit report against a real public corpus, published** — see [Sample audit report](sample-audit-report.md). A real `kbguard scan` against 68 live pages of LangChain's own public documentation (no synthetic/planted problems): exact-duplicate boilerplate across six real tutorial pages, a real overlapping-documentation pattern, and real chunking damage from interactive widgets the original synthetic test corpus never modeled. One real methodology mistake (a `stale_versions` metadata bug producing 395 false findings on the first run) is reported and explained rather than quietly fixed before publishing.
+- [x] **Write-up / case study for outreach** — see [Case study](case-study.md).
 
 ## Full internal build plan
 
