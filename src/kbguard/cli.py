@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from kbguard.adapters.base import AdapterConnectionError, VectorStoreAdapter
 from kbguard.checks.base import CheckContext
 from kbguard.checks.contradictions import ContradictionsCheckError
+from kbguard.checks.duplicates import DuplicatesCheckError
 from kbguard.config import ConfigError, KBGuardConfig
 from kbguard.evals.golden import freeze as freeze_golden
 from kbguard.evals.golden import generate as generate_golden
@@ -86,6 +87,7 @@ _USER_FACING_ERRORS = (
     EmbeddingError,
     SnapshotError,
     ContradictionsCheckError,
+    DuplicatesCheckError,
     AdapterConnectionError,
     JudgeError,
 )

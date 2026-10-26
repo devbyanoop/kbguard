@@ -1,7 +1,10 @@
+import sys
 from pathlib import Path
 
+import pytest
+
 from kbguard.checks.base import CheckContext
-from kbguard.checks.duplicates import DuplicatesCheck
+from kbguard.checks.duplicates import DuplicatesCheck, DuplicatesCheckError
 from kbguard.config import DuplicatesCheckConfig
 from kbguard.ingest.snapshot import SnapshotReader, SnapshotWriter
 from kbguard.models import Chunk
@@ -188,3 +191,45 @@ def test_against_real_example_corpus(tmp_path: Path) -> None:
     assert frozenset({"refund-exact-1", "refund-exact-2"}) in clusters
     assert frozenset({"shipping-near-1", "shipping-near-2"}) in clusters
     assert len(findings) == 2  # nothing else gets flagged
+
+
+def test_exact_duplicates_work_without_the_dedup_extra_installed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Confirmed by hand against a real clean-venv install of just
+    `kbguard[chroma]` (no `dedup`): `kbguard scan` crashed with a raw
+    `ModuleNotFoundError: No module named 'faiss'` the instant this
+    module was imported, before the check even ran, let alone needed
+    faiss for anything -- exact-duplicate detection is plain text-hash
+    matching and never touches faiss/datasketch at all. Simulating the
+    same "not installed" condition here via sys.modules, not just
+    trusting the earlier manual clean-venv check."""
+    monkeypatch.setitem(sys.modules, "faiss", None)
+    monkeypatch.setitem(sys.modules, "datasketch", None)
+
+    chunks = [
+        _chunk("a", "Refunds within 30 days of purchase.", [1.0, 0.0]),
+        _chunk("b", "Refunds within 30 days of purchase.", [0.0, 1.0]),  # exact text dup, unrelated vector
+    ]
+    reader = _snapshot(tmp_path, chunks)
+
+    findings = _run(reader)
+
+    assert len(findings) == 1
+    assert findings[0].evidence["duplicate_type"] == "exact"
+
+
+def test_near_duplicates_raise_a_clear_error_without_the_dedup_extra(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(sys.modules, "faiss", None)
+    monkeypatch.setitem(sys.modules, "datasketch", None)
+
+    chunks = [
+        _chunk("a", "Standard shipping takes 5 to 7 business days.", [1.0, 0.0]),
+        _chunk("b", "Standard shipping usually takes 5 to 7 business days.", [0.999, 0.001]),
+    ]
+    reader = _snapshot(tmp_path, chunks)
+
+    with pytest.raises(DuplicatesCheckError, match="dedup"):
+        _run(reader)

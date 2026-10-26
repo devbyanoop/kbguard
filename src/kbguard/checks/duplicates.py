@@ -1,21 +1,34 @@
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-import faiss
 import numpy as np
-from datasketch import MinHash
 
 from kbguard.checks.base import CheckContext
 from kbguard.config import DuplicatesCheckConfig
 from kbguard.ingest.snapshot import SnapshotReader
 from kbguard.models import Chunk, Finding, Severity, compute_fingerprint
 
+if TYPE_CHECKING:
+    from datasketch import MinHash
+
 # Nearest neighbors examined per chunk before filtering by threshold. At
 # this corpus size it covers every other chunk anyway; at real scale it
 # bounds the ANN search cost without needing to be configurable yet — no
 # current corpus has more than 50 mutual near-duplicates of one chunk.
 _ANN_TOP_K = 50
+
+
+class DuplicatesCheckError(Exception):
+    """Raised when near-duplicate detection needs `faiss`/`datasketch`
+    (the `dedup` extra) and it isn't installed. Exact-duplicate detection
+    (plain text-hash matching, no extra needed) always works regardless —
+    confirmed by hand with a real clean-venv install of just
+    `kbguard[chroma]`: the exact path never touches either library, only
+    the near-duplicate path does, so this is raised lazily, right where
+    it's actually needed, not at module import time (which used to crash
+    `kbguard scan` outright the instant *any* check tried to import this
+    module, before the check even ran, let alone needed faiss for real)."""
 
 
 class _UnionFind:
@@ -77,7 +90,7 @@ def _exact_duplicate_clusters(chunks: dict[str, Chunk]) -> list[list[str]]:
     return [sorted(ids) for ids in groups.values() if len(ids) > 1]
 
 
-def _word_minhash(text: str, num_perm: int = 128) -> MinHash:
+def _word_minhash(text: str, num_perm: int = 128) -> "MinHash":
     # Word-set Jaccard (unigrams), not literal multi-word "shingles" as the
     # spec names them: tested against the example corpus's real reworded
     # near-duplicate pair, word trigrams scored 0.0 Jaccard (a handful of
@@ -86,6 +99,12 @@ def _word_minhash(text: str, num_perm: int = 128) -> MinHash:
     # problem. Word-set Jaccard scored ~0.47 for the same pair with a
     # ~12x margin over unrelated text — see config.py's minhash_jaccard
     # default and docs/guide/checks/duplicates.md for the full comparison.
+    try:
+        from datasketch import MinHash
+    except ImportError as exc:
+        raise DuplicatesCheckError(
+            'near-duplicate detection needs the \'dedup\' extra: pip install "kbguard[dedup]"'
+        ) from exc
     m = MinHash(num_perm=num_perm)
     for word in set(text.lower().split()):
         m.update(word.encode("utf-8"))
@@ -108,6 +127,13 @@ def _near_duplicate_clusters(
     candidate_ids = [cid for cid in chunks if cid not in exclude_ids and cid in vectors_by_id]
     if len(candidate_ids) < 2:
         return []
+
+    try:
+        import faiss
+    except ImportError as exc:
+        raise DuplicatesCheckError(
+            'near-duplicate detection needs the \'dedup\' extra: pip install "kbguard[dedup]"'
+        ) from exc
 
     dim = len(vectors_by_id[candidate_ids[0]])
     matrix = np.array([vectors_by_id[cid] for cid in candidate_ids], dtype=np.float32)
