@@ -88,7 +88,7 @@ Full guide (configuration, every check, every adapter, evals, judge calibration,
 
 ## Project status
 
-Weeks 1–3 of the build (every check, every adapter, the full evals/calibration/diff/CI pipeline) are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Week 4 — README polish, a published sample audit report against a real public corpus, PyPI packaging — is in progress. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
+Every check, every adapter, and the full evals/calibration/diff/CI pipeline are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Packaging has been verified against a real clean-venv install from the built wheel, and this README and the rest of the docs site are filled in end to end. Not yet published to PyPI. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
 
 ## Contributing
 

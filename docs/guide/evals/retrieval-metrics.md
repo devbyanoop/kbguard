@@ -18,7 +18,7 @@ One `EvalResult` per `(question, metric, k)` — aggregating e.g. every `recall@
 
 ## Cause tagging
 
-Every result's `cause` answers *why* it failed, reading Week 2's own check findings directly — the concrete link that makes "trace every failure to a cause" real, not aspirational:
+Every result's `cause` answers *why* it failed, reading the content checks' own findings directly — the concrete link that makes "trace every failure to a cause" real, not aspirational:
 
 - **`content`** — an expected chunk is either missing from the snapshot entirely, or already flagged by a [knowledge-base check](../checks/overview.md) (stale, damaged, duplicate). Fixing retrieval wouldn't have helped.
 - **`retrieval`** — the expected chunk exists and is unflagged, but simply wasn't surfaced in the top-k.

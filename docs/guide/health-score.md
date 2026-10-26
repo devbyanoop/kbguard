@@ -50,4 +50,4 @@ Running `kbguard scan` against `examples/policy_corpus/` (17 chunks) with defaul
 
 ## Why eval metrics aren't mixed into this number
 
-Retrieval/answer-quality metrics (recall@5, faithfulness, etc. — Week 3) are reported as a **separate scorecard**, not folded into the health score. Content quality and system quality are different things that can move independently — a perfectly clean knowledge base can still sit behind broken retrieval, and mixing the two into one number would hide that distinction from exactly the person the number is meant to help.
+Retrieval/answer-quality metrics (recall@5, faithfulness, etc.) are reported as a **separate scorecard**, not folded into the health score. Content quality and system quality are different things that can move independently — a perfectly clean knowledge base can still sit behind broken retrieval, and mixing the two into one number would hide that distinction from exactly the person the number is meant to help.

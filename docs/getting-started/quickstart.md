@@ -78,5 +78,5 @@ You should see all 17 chunks, with `source` filled in from each chunk's `doc_id`
 ## What's next
 
 - Enable `contradictions` (set `judge.model` and `checks.contradictions.enabled: true`) to see the corpus's one genuine cross-document contradiction (`warranty-a` vs. `warranty-b`) show up too.
-- **Week 3** adds evals, retrieval metrics, judge calibration, and `kbguard diff` for CI gating.
+- Try evals, retrieval metrics, judge calibration, and `kbguard diff` for CI gating — see [Golden sets](../guide/evals/golden-sets.md) and [Diff & CI](../guide/diff-and-ci.md).
 - Track real progress on [Roadmap & status](../project/roadmap.md).
