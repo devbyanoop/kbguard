@@ -80,6 +80,6 @@ Every snapshot directory (`.kbguard/snapshots/<id>/`) ends up with:
 | `findings.jsonl` | `scan` (checks), readable by `report` | Every finding every enabled check produced |
 | `judge_cache.sqlite` | `scan`, if `judge:` is configured | Judge responses cached by request hash — see [Judge & calibration](../guide/evals/judge-and-calibration.md) |
 | `results.json` | `scan`, `report`, and `eval` | `ScanResults`: snapshot metadata + health score + findings + eval results |
-| `report.html` | `scan`, `report`, and `eval` | The human-readable report — health score, findings grouped by check and severity, eval results table |
+| `report.html` | `scan`, `report`, and `eval` | The human-readable report — three tabs: Summary (plain-language verdict + top issues), Engineering (findings grouped by check/severity, each enriched with source/snippet/suggested action), Trend (health over every past scan of this collection) |
 
 One file lives *outside* any specific snapshot: `.kbguard/calibration.json`, written only by `calibrate` and read only by `eval` — not per-snapshot, since recalibrating is a deliberate, infrequent human action that should apply regardless of which snapshot you're evaluating next.
