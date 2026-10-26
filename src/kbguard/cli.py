@@ -113,6 +113,28 @@ def _resolve_snapshot_path(collection: str, snapshot_id: str | None) -> Path:
     return candidates[-1]
 
 
+def _collect_history(collection: str) -> list[ScanResults]:
+    """Every past scan of this collection that has a results.json, oldest
+    first — built from files `kbguard scan`/`report`/`eval` already write
+    to disk on every run, so the report's trend tab can answer "is this
+    getting better or worse" without any new tracking mechanism. Missing/
+    unreadable results.json (e.g. a very old snapshot from before health
+    scoring existed) is skipped, not an error — one unreadable file
+    shouldn't block rendering the current report."""
+    snapshots_dir = Path(".kbguard") / "snapshots"
+    if not snapshots_dir.is_dir():
+        return []
+    history = []
+    for path in sorted(snapshots_dir.glob(f"*_{collection}")):
+        results_path = path / "results.json"
+        if results_path.is_file():
+            try:
+                history.append(ScanResults.from_json(results_path))
+            except ValueError:
+                continue
+    return history
+
+
 def _load_metric_plugin(name: str, embedder: Any) -> Any:
     if name not in _METRIC_PLUGINS:
         raise ConfigError(f"unknown metric {name!r} in evals.metrics -- known metrics: {sorted(_METRIC_PLUGINS)}")
@@ -157,7 +179,8 @@ def _write_report(cfg: KBGuardConfig, snapshot: Snapshot, snapshot_path: Path) -
     health = compute_health(summary, cfg.health)
     results = ScanResults(snapshot=snapshot, health=health, findings=list(reader.findings()))
     results.to_json(snapshot_path / "results.json")
-    render_html(results, snapshot_path / "report.html")
+    history = _collect_history(snapshot.collection)
+    render_html(results, snapshot_path / "report.html", reader=reader, history=history)
 
 
 @app.command()
@@ -418,7 +441,8 @@ def eval_command(
 
         results = ScanResults(snapshot=snapshot, health=health, findings=findings, eval_results=eval_results)
         results.to_json(results_path)
-        render_html(results, snapshot_path / "report.html")
+        history = _collect_history(snapshot.collection)
+        render_html(results, snapshot_path / "report.html", reader=reader, history=history)
     except _USER_FACING_ERRORS as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
