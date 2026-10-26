@@ -9,7 +9,7 @@ kbguard uses an LLM as a judge in a few places (confirming contradictions, scori
 
 ## `JudgeClient` (built)
 
-One `JudgeClient` (`judge/client.py`), used by contradiction confirmation and (Week 3) answer metrics that accept a custom LLM:
+One `JudgeClient` (`judge/client.py`), used by contradiction confirmation and answer metrics that accept a custom LLM:
 
 ```python
 class JudgeClient:

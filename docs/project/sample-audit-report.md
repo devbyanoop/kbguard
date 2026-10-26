@@ -1,6 +1,6 @@
 # Sample audit report: a real public documentation site
 
-Every other example in this guide uses `examples/policy_corpus/` — a synthetic corpus with deliberately planted problems, built to make Week 2's thresholds hand-verifiable. This page is different: it's a real run of `kbguard scan` against a real, live, third-party production knowledge base kbguard had never seen before, to answer one question honestly — does kbguard find genuine problems in real content, or only the ones it was built to find?
+Every other example in this guide uses `examples/policy_corpus/` — a synthetic corpus with deliberately planted problems, built to make the content checks' own thresholds hand-verifiable. This page is different: it's a real run of `kbguard scan` against a real, live, third-party production knowledge base kbguard had never seen before, to answer one question honestly — does kbguard find genuine problems in real content, or only the ones it was built to find?
 
 **Target:** LangChain's own real, public Python documentation (`docs.langchain.com/oss/python/langchain/` — 68 pages as of 2026-10-26). Chosen because it's large enough to have accumulated genuine real-world documentation drift, public and permissively crawlable (`robots.txt`: `Content-Signal: ai-train=yes, ai-input=yes`), and — fittingly — it's the documentation for an AI framework, being audited by an AI-testing tool.
 
