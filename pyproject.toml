@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kbguard"
-version = "0.1.0rc1"
+version = "0.1.0rc2"
 description = "Knowledge-base QA and evals for RAG systems, across any vector database."
 readme = "README.md"
 license = "Apache-2.0"
