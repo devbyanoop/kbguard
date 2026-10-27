@@ -30,6 +30,12 @@ dependencies = [
     "pandas>=2.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/devbyanoop/kbguard"
+Repository = "https://github.com/devbyanoop/kbguard"
+Issues = "https://github.com/devbyanoop/kbguard/issues"
+Documentation = "https://github.com/devbyanoop/kbguard/tree/main/docs"
+
 [project.optional-dependencies]
 chroma = ["chromadb>=0.5"]
 pgvector = ["psycopg[binary]>=3.1", "pgvector>=0.3"]
