@@ -24,6 +24,12 @@ jobs:
       - name: Install kbguard with every extra the test suite needs
         run: pip install -e ".[all]"
 
+      # See kbguard.yml's identical step for why this is needed separately
+      # from the pip install above -- spaCy's model is not a regular pip
+      # dependency.
+      - name: Download spaCy's small English model
+        run: python -m spacy download en_core_web_sm
+
       - name: ruff
         run: ruff check src tests contract_tests examples conftest.py
 

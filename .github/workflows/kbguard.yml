@@ -53,6 +53,16 @@ jobs:
       - name: Install kbguard with every extra the test suite needs
         run: pip install -e ".[all]"
 
+      # spaCy's language models are NOT a regular pip dependency pulled in
+      # by `pip install spacy` (or the `nlp` extra above) -- they're a
+      # separate download, required at runtime by checks/contradictions.py
+      # and exercised directly by its tests. Missed entirely until this
+      # workflow's first real run: the local dev venv already had this
+      # model downloaded by hand from early in the build, so every local
+      # `pytest` run passed silently while CI never actually had it.
+      - name: Download spaCy's small English model
+        run: python -m spacy download en_core_web_sm
+
       - name: ruff
         run: ruff check src tests contract_tests examples conftest.py
 
