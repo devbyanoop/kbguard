@@ -1,0 +1,71 @@
+name: Publish to TestPyPI
+
+# Rehearses the real release.yml's Trusted Publishing mechanism against
+# the TestPyPI index before anything goes to the real PyPI index. Manually
+# triggered (workflow_dispatch) only -- a TestPyPI upload is still a real,
+# visible, one-way action (a given version string can never be
+# re-uploaded to the same index, same restriction as real PyPI), so this
+# never fires on its own.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and verify the distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install kbguard with every extra the test suite needs
+        run: pip install -e ".[all]"
+
+      - name: ruff
+        run: ruff check src tests contract_tests examples conftest.py
+
+      - name: mypy --strict
+        run: mypy src/kbguard
+
+      - name: pytest (unit + contract tests; real external services/APIs skip cleanly without credentials)
+        run: pytest -q
+
+      - name: Build sdist and wheel
+        run: |
+          pip install --upgrade build twine
+          python -m build
+          twine check dist/*
+
+      - name: Upload the built distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to TestPyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Matches the trusted-publisher configuration's "environment name"
+    # exactly -- same requirement as release.yml's "pypi" environment,
+    # kept as a separate environment name so a TestPyPI trusted publisher
+    # can never be confused with the real-PyPI one.
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/kbguard
+    permissions:
+      id-token: write  # the one thing trusted publishing actually needs -- no secrets.TESTPYPI_API_TOKEN anywhere
+    steps:
+      - name: Download the distribution built and verified above
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
