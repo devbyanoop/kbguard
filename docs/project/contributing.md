@@ -69,6 +69,28 @@ The same skip-cleanly-when-unconfigured rule applies: `tests/test_adapters_pinec
 
 **To cut a release**, once that's set up: bump `version` in `pyproject.toml`, commit, tag it (`git tag v0.1.0 && git push --tags`), then create a GitHub Release from that tag. The workflow handles the rest.
 
+### Rehearsing a release on TestPyPI first
+
+`.github/workflows/test-publish.yml` is the same build-verify-publish pipeline aimed at [TestPyPI](https://test.pypi.org/) instead of the real index, so a release can be dry-run end to end — including that the built wheel actually installs and the console script actually works — before anything goes to the real PyPI index. It never fires on its own; it's `workflow_dispatch`-only, triggered manually from the Actions tab (or `gh workflow run test-publish.yml`).
+
+**One-time setup, before the first test run (TestPyPI-side — a separate account/login from real PyPI; only the account owner can do this):**
+
+1. Create a TestPyPI account at test.pypi.org if you don't already have one — it does not share login or project registrations with pypi.org.
+2. Reserve/create the `kbguard` project on TestPyPI.
+3. On that project's "Publishing" settings page, add a trusted publisher: owner `devbyanoop`, repository `kbguard`, workflow filename `test-publish.yml`, environment name `testpypi`.
+4. In this repo's GitHub settings, create an environment named `testpypi` (Settings → Environments) — separate from the `pypi` environment `release.yml` uses, so the two trusted-publisher configs can never be mixed up.
+
+**Then:** run the workflow manually. Afterwards, verify the result for real rather than trusting a green checkmark:
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ kbguard
+kbguard --help
+```
+
+(`--extra-index-url` is needed because TestPyPI doesn't mirror kbguard's real dependencies — without it, pip can't find `pydantic`, `typer`, etc.)
+
+**One real constraint to plan around:** PyPI and TestPyPI both permanently reject re-uploading the same version string to the same project, even after a deletion — there's no "overwrite" or "retry same version." A single clean test run against the current `0.1.0` is fine; if you need to re-run the rehearsal after a fix, bump to a throwaway pre-release version first (e.g. `0.1.0rc1` in `pyproject.toml`), test-publish that, then set the version back to `0.1.0` before the real release.
+
 ## Documentation
 
 This guide (`docs/`) is written incrementally, alongside the code — a feature's documentation is written and verified the same day the feature itself is built and tested, not ahead of time. Pages for unbuilt features carry an explicit "Planned" warning with scope only, no invented usage examples. If you're adding a feature, update its doc page in the same change.
