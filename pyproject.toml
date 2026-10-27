@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kbguard"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "Knowledge-base QA and evals for RAG systems, across any vector database."
 readme = "README.md"
 license = "Apache-2.0"
@@ -25,7 +25,17 @@ dependencies = [
     "rich>=13.0",
     "jinja2>=3.1",
     "pyarrow>=16.0",
-    "numpy>=1.26",
+    # pyarrow's own wheel metadata declares no numpy floor at all -- the
+    # real compatibility requirement (pyarrow >=16 needs NumPy 2.x) is
+    # only enforced inside pyarrow's C extension at import time, not by
+    # pip's resolver. A looser floor here (numpy>=1.26) let pip leave an
+    # already-installed, pre-numpy-2 environment untouched -- satisfied
+    # on paper, but pyarrow then raised "pyarrow requires NumPy 2.0 or
+    # newer" on the very first `kbguard` invocation. Confirmed by hand:
+    # reproduced for real against a real pre-existing numpy 1.26.4
+    # install, fixed by raising this floor so pip is forced to upgrade
+    # it instead of leaving it alone.
+    "numpy>=2.0",
     "PyYAML>=6.0",
     "pandas>=2.0",
     # Used at runtime by evals/target.py's RagTarget (an HTTP target.type
