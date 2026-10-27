@@ -44,20 +44,13 @@ Any other store is a small adapter away (the simplest built-in one, Chroma's, is
 
 ## Installation
 
-Not yet published to PyPI — install from source:
-
 ```bash
-git clone https://github.com/devbyanoop/kbguard.git
-cd kbguard
-python -m venv .venv
-source .venv/bin/activate   # Windows (Git Bash): source .venv/Scripts/activate
-
-pip install -e ".[dev,chroma]"
+pip install "kbguard[chroma]"
 ```
 
-Swap or add extras for the store(s) you actually want (`pgvector`, `qdrant`, `pinecone`, `langchain`, `llamaindex`), plus `litellm` for the judge, and `ragas`/`deepeval` for answer-quality metrics. `pip install -e ".[all]"` pulls in everything the test suite itself needs.
+Swap or add extras for the store(s) you actually want (`pgvector`, `qdrant`, `pinecone`, `langchain`, `llamaindex`), plus `litellm` for the judge, and `ragas`/`deepeval` for answer-quality metrics.
 
-See [Installation](docs/getting-started/installation.md) for the full breakdown.
+See [Installation](docs/getting-started/installation.md) for the full breakdown, and for installing from source if you're contributing to kbguard itself.
 
 ## Quickstart
 
@@ -88,7 +81,7 @@ Full guide (configuration, every check, every adapter, evals, judge calibration,
 
 ## Project status
 
-Every check, every adapter, and the full evals/calibration/diff/CI pipeline are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Packaging has been verified against a real clean-venv install from the built wheel, and this README and the rest of the docs site are filled in end to end. Not yet published to PyPI. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
+Every check, every adapter, and the full evals/calibration/diff/CI pipeline are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Packaging has been verified against a real clean-venv install from the built wheel, and this README and the rest of the docs site are filled in end to end. [Published on PyPI](https://pypi.org/project/kbguard/) as `0.1.0`. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
 
 ## Contributing
 
