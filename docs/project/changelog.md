@@ -2,6 +2,18 @@
 
 All notable changes to kbguard are recorded here, following [Keep a Changelog](https://keepachangelog.com/) conventions.
 
+## [0.1.1] - 2026-11-04
+
+A packaging-only patch release. No CLI/API behavior changes for an already-working install — but `0.1.0`'s dependency floors had two real gaps that only surfaced once `kbguard.yml`'s CI actually exercised a fresh combined install of every extra together (it never had, until this release: every earlier push died before `pytest` even ran — see `[0.1.0]`'s own final entry below). Both gaps are live on PyPI right now for anyone installing `0.1.0` with the affected extras, which is why this is a real release and not just a CI cleanup.
+
+### Fixed
+- `ragas`'s floor (`>=0.1`) let a fresh combined install of every extra together resolve `ragas==0.3.1` — the *oldest* compatible release, which ships no `py.typed` marker and doesn't depend on `instructor` at all, unlike the `0.4.x` `evals/metrics/ragas_plugin.py` is actually written against. Raised to `ragas>=0.4`.
+- `scikit-learn` was never declared as a dependency anywhere — `judge/calibrate.py`'s `cohen_kappa_score` import only ever worked by luck, via another extra pulling it in transitively. Declared explicitly under the `litellm` extra (`scikit-learn>=1.3`), and `_cohen_kappa` no longer depends on a scikit-learn-1.9-only kwarg (`replace_undefined_by`) that's incompatible with this project's own Python 3.10+ support floor — replicated the identical behavior by hand instead (`NaN` -> `0.0`).
+- Two `ndarray` usages (`ingest/snapshot.py`, `checks/contradictions.py`) and one `# type: ignore` (`evals/golden.py`) depended on which numpy/pandas-stubs version a given environment happened to resolve — explicitly parametrized/widened so `mypy --strict` passes regardless of which version resolves. Internal-only; no user-facing effect.
+- `tests/conftest.py`'s `pgvector_connect_settings` fixture never ensured Postgres's `vector` extension actually existed, only that the container was reachable — invisible against a long-lived local dev database, real against CI's fresh-every-run one. Test-only; no user-facing effect.
+
+Every fix above was verified against the real, exact dependency set a fresh combined install resolves — including a genuine Python 3.10.11 interpreter set up specifically to confirm this, not just Python 3.11/3.12 — not assumed from reasoning about version floors alone. See the full account in each fix's own session, below, under `[0.1.0]`.
+
 ## [0.1.0] - 2026-10-27
 
 Published to [PyPI](https://pypi.org/project/kbguard/) via Trusted Publishing. The real release run itself caught one more real bug — see the end of Fixed, below — before the actual publish.

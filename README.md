@@ -81,7 +81,7 @@ Full guide (configuration, every check, every adapter, evals, judge calibration,
 
 ## Project status
 
-Every check, every adapter, and the full evals/calibration/diff/CI pipeline are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Packaging has been verified against a real clean-venv install from the built wheel, and this README and the rest of the docs site are filled in end to end. [Published on PyPI](https://pypi.org/project/kbguard/) as `0.1.0`. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
+Every check, every adapter, and the full evals/calibration/diff/CI pipeline are complete and have been verified against real vector databases and a real LLM provider, not just mocks. Packaging has been verified against a real clean-venv install from the built wheel, and this README and the rest of the docs site are filled in end to end. [Published on PyPI](https://pypi.org/project/kbguard/) as `0.1.1`. See [Roadmap & status](docs/project/roadmap.md) for the exact current state.
 
 ## Contributing
 
