@@ -68,7 +68,20 @@ llamaindex = ["llama-index-core>=0.10"]
 # .vertexai.ChatVertexAI, a module that no longer exists there, making a
 # fresh `pip install ragas` literally unimportable. Confirmed by hand,
 # not assumed; 0.3.31 (the newest pre-0.4 release) still has it.
-ragas = ["ragas>=0.1", "langchain-community<0.4"]
+#
+# ragas floor raised 0.1 -> 0.4: a loose >=0.1 floor let pip's resolver
+# -- forced to satisfy every other "all"-extra's constraints at the same
+# time, not just ragas's own -- land on 0.3.1 (the *oldest* compatible
+# release) instead of the 0.4.x this file's ragas_plugin.py actually
+# targets (see its own docstring). 0.3.1 ships no py.typed marker and
+# doesn't depend on `instructor` at all, which is exactly what broke
+# `mypy --strict` in CI: it passed locally only because this project's
+# dev venv had been built up extra-by-extra over time and happened to
+# still have 0.4.3 from whenever `ragas` was first added, never forced
+# through a single combined resolve the way CI's `pip install -e ".[all]"`
+# does. Confirmed by hand with `pip install -e ".[all]" --dry-run
+# --report`, not assumed.
+ragas = ["ragas>=0.4", "langchain-community<0.4"]
 deepeval = ["deepeval>=1.0"]
 litellm = ["litellm>=1.40"]
 sentence-transformers = ["sentence-transformers>=2.7"]
