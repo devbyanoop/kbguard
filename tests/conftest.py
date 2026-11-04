@@ -45,7 +45,25 @@ def _is_reachable(host: str, port: int, timeout: float = 1.0) -> bool:
 def pgvector_connect_settings() -> dict[str, Any]:
     if not _is_reachable(_PG_HOST, _PG_PORT):
         pytest.skip(f"pgvector not reachable at {_PG_HOST}:{_PG_PORT} — run docker compose up -d")
-    return {"host": _PG_HOST, "port": _PG_PORT, "user": "kbguard", "password": "kbguard", "dbname": "kbguard_test"}
+    settings = {"host": _PG_HOST, "port": _PG_PORT, "user": "kbguard", "password": "kbguard", "dbname": "kbguard_test"}
+
+    # A long-lived local docker-compose postgres only ever needs this once,
+    # ever -- every test in this file that connects was silently relying on
+    # that. CI's service container is fresh per run, and tests/conftest.py
+    # runs before contract_tests/ (testpaths order in pyproject.toml), so
+    # the first pgvector test to connect here, in file-definition order,
+    # genuinely was the very first thing to touch this database -- without
+    # this, `register_vector()` raises `vector type not found in the
+    # database`. Confirmed for real: this is what broke the first time
+    # kbguard.yml's pytest step ever actually ran in CI. Idempotent
+    # (IF NOT EXISTS), so the later tests' own identical calls stay
+    # harmless rather than being removed.
+    import psycopg
+
+    with psycopg.connect(**settings, autocommit=True) as conn:
+        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
+    return settings
 
 
 @pytest.fixture
