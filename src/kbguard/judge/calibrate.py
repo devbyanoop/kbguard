@@ -69,17 +69,23 @@ def _cohen_kappa(human_labels: list[Any], judge_labels: list[Any]) -> float:
     # quick derivation (verified: 1.0 for identical label lists, 0.0 for
     # chance-level agreement, confirmed by hand against sklearn directly
     # before trusting it).
+    import math
+
     from sklearn.metrics import cohen_kappa_score
 
-    # replace_undefined_by=0.0: confirmed by hand that sklearn's own
-    # default (NaN) only occurs when kappa is mathematically undefined
-    # (e.g. every human label is identical, making the chance-agreement
-    # term 1.0) -- passing this directly means sklearn itself returns
-    # 0.0 in that case, never NaN, so there's nothing left to patch up
-    # afterward. 0.0 reads as "no measurable agreement beyond chance," a
-    # safer default for a gate than a NaN silently flowing into
-    # calibration.json.
-    return float(cohen_kappa_score(human_labels, judge_labels, replace_undefined_by=0.0))
+    # NaN replaced by hand, not via sklearn's own replace_undefined_by
+    # kwarg (added in scikit-learn 1.9, which dropped Python 3.10 support
+    # -- confirmed against scikit-learn's own changelog: no release both
+    # supports 3.10 and has this parameter, and this project supports
+    # 3.10+). Confirmed by hand that sklearn's un-patched default (NaN)
+    # only occurs when kappa is mathematically undefined (e.g. every
+    # human label is identical, making the chance-agreement term 1.0) --
+    # identical end result to passing the kwarg, just computed after the
+    # call instead of inside it. 0.0 reads as "no measurable agreement
+    # beyond chance," a safer default for a gate than a NaN silently
+    # flowing into calibration.json.
+    kappa = float(cohen_kappa_score(human_labels, judge_labels))
+    return 0.0 if math.isnan(kappa) else kappa
 
 
 def _write_result(result: CalibrationResult, out_path: Path) -> None:
