@@ -7,6 +7,7 @@ from itertools import combinations
 from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 
 from kbguard.checks.base import CheckContext, JudgeLike
 from kbguard.config import ContradictionsCheckConfig, FactType
@@ -122,7 +123,7 @@ class ContradictionsCheck:
                     yield finding
 
 
-def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+def _cosine(a: npt.NDArray[np.float64], b: npt.NDArray[np.float64]) -> float:
     na, nb = float(np.linalg.norm(a)), float(np.linalg.norm(b))
     if na == 0.0 or nb == 0.0:
         return 0.0

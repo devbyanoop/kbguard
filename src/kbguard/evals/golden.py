@@ -78,7 +78,14 @@ def generate(snapshot: SnapshotReader, n: int, judge: JudgeLike) -> pd.DataFrame
             }
         )
 
-    return pd.DataFrame(rows, columns=_CSV_COLUMNS)  # type: ignore[no-any-return]
+    # no-any-return: needed against some pandas-stubs versions (DataFrame's
+    # constructor returns Any), not others -- unused-ignore keeps this from
+    # flipping to an error depending on which one a given environment
+    # resolves (confirmed happening in practice: CI's 3.10 and 3.12 matrix
+    # legs resolve different pandas-stubs versions than each other and than
+    # local dev, same combined-resolve root cause as the ragas floor bug
+    # elsewhere in this file's history -- see changelog.md).
+    return pd.DataFrame(rows, columns=_CSV_COLUMNS)  # type: ignore[no-any-return, unused-ignore]
 
 
 def _is_approved(value: Any) -> bool:

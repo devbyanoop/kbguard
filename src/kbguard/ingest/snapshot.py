@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -173,7 +174,7 @@ class SnapshotWriter:
 class SnapshotReader:
     def __init__(self, path: Path) -> None:
         self._path = path
-        self._vectors: np.ndarray | None = None  # lazy-loaded, cached after first use
+        self._vectors: npt.NDArray[np.float32] | None = None  # lazy-loaded, cached after first use
 
     def manifest(self) -> dict[str, Any]:
         return json.loads((self._path / "manifest.json").read_text())  # type: ignore[no-any-return]
