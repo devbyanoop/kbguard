@@ -33,9 +33,11 @@ Plan/
 # MkDocs build output (published separately, not committed to main)
 site/
 
-# Generated outreach PDF (built from docs/project/case-study.md, not the
-# source of truth itself) -- regenerate rather than diffing a binary.
+# Outreach case study -- distributed directly as a PDF, not published in
+# the public repo. Source markdown kept locally only; removed from
+# mkdocs.yml's nav so CI/Pages don't 404 on it.
 docs/case-study.pdf
+docs/project/case-study.md
 
 # Generated demo data — reproducible via examples/policy_corpus/seed.py
 examples/policy_corpus/chroma_data/
